@@ -48,6 +48,10 @@ class CodeScannerView(context: Context, private val attrs: AttributeSet?) :
         binding.previewView.setBarcodeFormats(formats)
     }
 
+    fun requestCameraPermission(context: Context) {
+        binding.previewView.requestCamera(context)
+    }
+
     fun enableTorch(enable: Boolean) {
         binding.previewView.enableTorch(enable)
     }

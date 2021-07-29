@@ -106,7 +106,7 @@ class CameraPreviewView(context: Context, attrs: AttributeSet?) : FrameLayout(co
         }
     }
 
-    private fun requestCamera(context: Context?) {
+      fun requestCamera(context: Context?) {
         Dexter.withContext(context)
             .withPermission(Manifest.permission.CAMERA)
             .withListener(object : PermissionListener {
@@ -132,7 +132,7 @@ class CameraPreviewView(context: Context, attrs: AttributeSet?) : FrameLayout(co
         barcodeFormats = formats.map { it.id }.toIntArray()
     }
 
-    fun releaseCamera() {
+    private fun releaseCamera() {
         successfullyRead = false
 
         bindPreviewUseCase()
