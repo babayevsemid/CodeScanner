@@ -30,7 +30,7 @@ dependencies {
 ```
 scannerView.init(this)
 
-binding.scanner.onResult = {
+scannerView.onResult = {
 //it result
 }
 
