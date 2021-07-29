@@ -34,6 +34,10 @@ scannerView.onResult = {
 //it result
 }
 
+scannerView.cameraPermission = {
+//it == true permission granted
+}
+
 ``` 
 
 ### Use in fragment with check permission
