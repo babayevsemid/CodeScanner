@@ -12,7 +12,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'com.github.babayevsemid:FileChooser:1.0.5'
+    implementation 'com.github.babayevsemid:CodeScanner:1.0.0'
       
 }
 ```
