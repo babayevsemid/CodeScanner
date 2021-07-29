@@ -1,13 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <declare-styleable name="CodeScannerView">
-        <attr format="color" name="maskColor"/>
-        <attr format="color" name="frameColor"/>
-        <attr format="dimension" name="frameThickness"/>
-        <attr format="dimension" name="frameCornersSize"/>
-        <attr format="dimension" name="frameCornersRadius"/>
-        <attr format="float" name="frameAspectRatioWidth"/>
-        <attr format="float" name="frameAspectRatioHeight"/>
-        <attr format="float" name="frameSize"/>
+        <attr name="csvMaskColor" format="color" />
+        <attr name="csvVibratorDuration" format="integer" />
+        <attr name="csvFrameColor" format="color" />
+        <attr name="csvFrameThickness" format="dimension" />
+        <attr name="csvFrameCornersSize" format="dimension" />
+        <attr name="csvFrameCornersRadius" format="dimension" />
+        <attr name="csvFrameAspectRatioWidth" format="float" />
+        <attr name="csvFrameAspectRatioHeight" format="float" />
+        <attr name="csvFrameSize" format="float" />
+        <attr name="csvLazerHeight" format="dimension" />
+        <attr name="csvLazerColor" format="color" />
+        <attr name="csvLazerVisible" format="boolean" />
+        <attr name="csvLazerAnimDuration" format="integer" />
+        <attr name="csvLazerAnim" format="enum" >
+            <enum name="linear" value="0"/>
+            <enum name="fade" value="1"/>
+        </attr>
     </declare-styleable>
 </resources>

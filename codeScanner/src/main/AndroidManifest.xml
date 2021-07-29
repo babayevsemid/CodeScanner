@@ -3,4 +3,5 @@
     package="com.semid.qrcodescanner">
 
     <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.VIBRATE" />
 </manifest>

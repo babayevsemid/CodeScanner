@@ -1,309 +1,128 @@
 package com.semid.qrcodescanner
 
-import android.Manifest
-import android.annotation.SuppressLint
+import android.animation.Animator
+import android.animation.AnimatorListenerAdapter
 import android.content.Context
-import android.content.res.TypedArray
 import android.graphics.Color
 import android.util.AttributeSet
-import android.util.DisplayMetrics
-import android.util.Log
 import android.view.LayoutInflater
+import android.view.animation.LinearInterpolator
+import android.widget.FrameLayout
 import androidx.annotation.ColorInt
 import androidx.annotation.FloatRange
 import androidx.annotation.Px
 import androidx.appcompat.app.AppCompatActivity
-import androidx.camera.core.*
-import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.constraintlayout.widget.ConstraintLayout
+import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
-import androidx.lifecycle.LifecycleOwner
-import androidx.lifecycle.ViewModelProvider
-import com.google.mlkit.vision.barcode.Barcode
-import com.google.mlkit.vision.barcode.BarcodeScanner
-import com.google.mlkit.vision.barcode.BarcodeScannerOptions
-import com.google.mlkit.vision.barcode.BarcodeScanning
-import com.google.mlkit.vision.common.InputImage
-import com.karumi.dexter.Dexter
-import com.karumi.dexter.PermissionToken
-import com.karumi.dexter.listener.PermissionDeniedResponse
-import com.karumi.dexter.listener.PermissionGrantedResponse
-import com.karumi.dexter.listener.PermissionRequest
-import com.karumi.dexter.listener.single.PermissionListener
 import com.semid.qrcodescanner.databinding.LayoutQrCodeScannerBinding
-import java.util.concurrent.Executors
-import kotlin.math.abs
-import kotlin.math.max
-import kotlin.math.min
+import kotlin.math.roundToInt
 
 
 class CodeScannerView(context: Context, private val attrs: AttributeSet?) :
     ConstraintLayout(context, attrs) {
+
     private val binding by lazy {
         LayoutQrCodeScannerBinding.inflate(LayoutInflater.from(context), this)
     }
+    var lazerAnim = 0
+    var lazerAnimDuration = 0
 
-    private lateinit var lifecycleOwner: LifecycleOwner
-
-
-    private val DEFAULT_MASK_COLOR = 0x77000000
-    private val DEFAULT_FRAME_COLOR = Color.WHITE
-    private val DEFAULT_FRAME_THICKNESS_DP = 2f
-    private val DEFAULT_FRAME_ASPECT_RATIO_WIDTH = 1f
-    private val DEFAULT_FRAME_ASPECT_RATIO_HEIGHT = 1f
-    private val DEFAULT_FRAME_CORNER_SIZE_DP = 50f
-    private val DEFAULT_FRAME_CORNERS_RADIUS_DP = 0f
-    private val DEFAULT_FRAME_SIZE = 0.75f
-
-    private var cameraProvider: ProcessCameraProvider? = null
-    private var cameraSelector: CameraSelector? = null
-    private var lensFacing = CameraSelector.LENS_FACING_BACK
-    private var previewUseCase: Preview? = null
-    private var analysisUseCase: ImageAnalysis? = null
-
-    private val screenAspectRatio: Int
-        get() {
-            val metrics = DisplayMetrics().also { binding.previewView.display.getRealMetrics(it) }
-            return aspectRatio(metrics.widthPixels, metrics.heightPixels)
-        }
-
-    private var successfullyRead = false
-
+    var cameraPermission: (granted: Boolean) -> Unit = {}
     var onResult: (result: String) -> Unit = {}
 
-    init {
-        binding
-
-        cameraSelector = CameraSelector.Builder().requireLensFacing(lensFacing).build()
-        val density = context.resources.displayMetrics.density
-
-        var a: TypedArray? = null
-        try {
-            a = context
-                .obtainStyledAttributes(attrs, R.styleable.CodeScannerView)
-
-            setMaskColor(
-                a.getColor(
-                    R.styleable.CodeScannerView_maskColor,
-                    DEFAULT_MASK_COLOR
-                )
-            )
-            setFrameColor(
-                a.getColor(
-                    R.styleable.CodeScannerView_frameColor,
-                    DEFAULT_FRAME_COLOR
-                )
-            )
-            setFrameThickness(
-                a.getDimensionPixelOffset(
-                    R.styleable.CodeScannerView_frameThickness,
-                    Math.round(DEFAULT_FRAME_THICKNESS_DP * density).toInt()
-                )
-            )
-            setFrameCornersSize(
-                a.getDimensionPixelOffset(
-                    R.styleable.CodeScannerView_frameCornersSize,
-                    Math.round(DEFAULT_FRAME_CORNER_SIZE_DP * density).toInt()
-                )
-            )
-            setFrameCornersRadius(
-                a.getDimensionPixelOffset(
-                    R.styleable.CodeScannerView_frameCornersRadius,
-                    Math.round(DEFAULT_FRAME_CORNERS_RADIUS_DP * density).toInt()
-                )
-            )
-            setFrameAspectRatio(
-                a.getFloat(
-                    R.styleable.CodeScannerView_frameAspectRatioWidth,
-                    DEFAULT_FRAME_ASPECT_RATIO_WIDTH
-                ),
-                a.getFloat(
-                    R.styleable.CodeScannerView_frameAspectRatioHeight,
-                    DEFAULT_FRAME_ASPECT_RATIO_HEIGHT
-                )
-            )
-            setFrameSize(
-                a.getFloat(
-                    R.styleable.CodeScannerView_frameSize,
-                    DEFAULT_FRAME_SIZE
-                )
-            )
-        } finally {
-            a?.recycle()
-        }
-    }
-
     fun init(fragment: Fragment) {
-        fragment.run {
-            lifecycleOwner = this
-            val application = requireActivity().application
-
-            val viewModel = ViewModelProvider(
-                fragment, ViewModelProvider.AndroidViewModelFactory.getInstance(application)
-            ).get(CameraXViewModel::class.java)
-
-            viewModel.cameraProviderLiveData.observe(fragment) {
-                cameraProvider = it
-
-                requestCamera(context)
-            }
-        }
+        binding.previewView.init(fragment)
     }
 
     fun init(activity: AppCompatActivity) {
-        activity.run {
-            lifecycleOwner = this
-            val application = application
-
-            val viewModel = ViewModelProvider(
-                activity, ViewModelProvider.AndroidViewModelFactory.getInstance(application)
-            ).get(CameraXViewModel::class.java)
-
-            viewModel.cameraProviderLiveData.observe(activity) {
-                cameraProvider = it
-
-                requestCamera(context)
-            }
-        }
-    }
-
-    private fun requestCamera(context: Context?) {
-        Dexter.withContext(context)
-            .withPermission(Manifest.permission.CAMERA)
-            .withListener(object : PermissionListener {
-                override fun onPermissionGranted(permissionGrantedResponse: PermissionGrantedResponse) {
-                    releaseCamera()
-                }
-
-                override fun onPermissionDenied(permissionDeniedResponse: PermissionDeniedResponse) {
-
-                }
-
-                override fun onPermissionRationaleShouldBeShown(
-                    permissionRequest: PermissionRequest?,
-                    permissionToken: PermissionToken
-                ) {
-                    permissionToken.continuePermissionRequest()
-                }
-            }).check()
-    }
-
-    fun releaseCamera() {
-        successfullyRead = false
-
-        bindPreviewUseCase()
-        bindAnalyseUseCase()
-    }
-
-    fun stopCamera() {
-        previewUseCase?.let {
-            cameraProvider?.unbind(it)
-        }
+        binding.previewView.init(activity)
     }
 
     fun readNext() {
-        successfullyRead = false
+        binding.previewView.readNext()
     }
 
-    private fun bindPreviewUseCase() {
-        if (cameraProvider == null) {
-            return
-        }
-        if (previewUseCase != null) {
-            cameraProvider!!.unbind(previewUseCase)
-        }
-
-        previewUseCase = Preview.Builder()
-            .setTargetAspectRatio(screenAspectRatio)
-            .setTargetRotation(binding.previewView.display.rotation)
-            .build()
-        previewUseCase!!.setSurfaceProvider(binding.previewView.surfaceProvider)
-
-        try {
-            cameraProvider!!.bindToLifecycle(
-                lifecycleOwner,
-                cameraSelector!!,
-                previewUseCase
-            )
-        } catch (illegalStateException: IllegalStateException) {
-            Log.e(TAG, illegalStateException.message.toString())
-        } catch (illegalArgumentException: IllegalArgumentException) {
-            Log.e(TAG, illegalArgumentException.message.toString())
-        }
+    fun setBarcodeFormats(formats: List<BarcodeFormat>) {
+        binding.previewView.setBarcodeFormats(formats)
     }
 
-    private fun bindAnalyseUseCase() {
-        // Note that if you know which format of barcode your app is dealing with, detection will be
-        // faster to specify the supported barcode formats one by one, e.g.
-        val options = BarcodeScannerOptions.Builder()
-            .setBarcodeFormats(Barcode.FORMAT_QR_CODE)
-            .build();
+    fun enableTorch(enable: Boolean) {
+        binding.previewView.enableTorch(enable)
+    }
 
-        val barcodeScanner: BarcodeScanner = BarcodeScanning.getClient(options)
+    fun isEnabledTorch() = binding.previewView.isEnabledTorch()
 
-        if (cameraProvider == null) {
-            return
-        }
-        if (analysisUseCase != null) {
-            cameraProvider!!.unbind(analysisUseCase)
+    init {
+        binding.previewView.onResult = { onResult.invoke(it) }
+        binding.previewView.cameraPermission = {
+            startLazerAnim(false)
+            cameraPermission.invoke(it)
         }
 
-        analysisUseCase = ImageAnalysis.Builder()
-            .setTargetAspectRatio(screenAspectRatio)
-            .setTargetRotation(binding.previewView.display.rotation)
-            .build()
+        initAttrs()
+    }
 
-        // Initialize our background executor
-        val cameraExecutor = Executors.newSingleThreadExecutor()
+    private fun initAttrs() {
+        val density = context.resources.displayMetrics.density
 
-        analysisUseCase?.setAnalyzer(
-            cameraExecutor,
-            { imageProxy ->
-                processImageProxy(barcodeScanner, imageProxy)
-            }
+        val a = context.obtainStyledAttributes(attrs, R.styleable.CodeScannerView)
+
+        setMaskColor(
+            a.getColor(R.styleable.CodeScannerView_csvMaskColor, DEFAULT_MASK_COLOR)
         )
-
-        try {
-            cameraProvider!!.bindToLifecycle(
-                lifecycleOwner,
-                cameraSelector!!,
-                analysisUseCase
+        setLazerColor(
+            a.getColor(R.styleable.CodeScannerView_csvLazerColor, DEFAULT_LAZER_COLOR)
+        )
+        setFrameColor(
+            a.getColor(R.styleable.CodeScannerView_csvFrameColor, DEFAULT_FRAME_COLOR)
+        )
+        setFrameThickness(
+            a.getDimensionPixelOffset(
+                R.styleable.CodeScannerView_csvFrameThickness,
+                (DEFAULT_FRAME_THICKNESS_DP * density).roundToInt()
             )
-        } catch (illegalStateException: IllegalStateException) {
-            Log.e(TAG, illegalStateException.message.toString())
-        } catch (illegalArgumentException: IllegalArgumentException) {
-            Log.e(TAG, illegalArgumentException.message.toString())
-        }
-    }
+        )
+        setFrameCornersSize(
+            a.getDimensionPixelOffset(
+                R.styleable.CodeScannerView_csvFrameCornersSize,
+                (DEFAULT_FRAME_CORNER_SIZE_DP * density).roundToInt()
+            )
+        )
+        setFrameCornersRadius(
+            a.getDimensionPixelOffset(
+                R.styleable.CodeScannerView_csvFrameCornersRadius,
+                (DEFAULT_FRAME_CORNERS_RADIUS_DP * density).roundToInt()
+            )
+        )
+        setFrameAspectRatio(
+            a.getFloat(
+                R.styleable.CodeScannerView_csvFrameAspectRatioWidth,
+                DEFAULT_FRAME_ASPECT_RATIO_WIDTH
+            ),
+            a.getFloat(
+                R.styleable.CodeScannerView_csvFrameAspectRatioHeight,
+                DEFAULT_FRAME_ASPECT_RATIO_HEIGHT
+            )
+        )
+        setFrameSize(a.getFloat(R.styleable.CodeScannerView_csvFrameSize, DEFAULT_FRAME_SIZE))
+        setLazerVisible(a.getBoolean(R.styleable.CodeScannerView_csvLazerVisible, true))
+        setVibratorDuration(
+            a.getInt(
+                R.styleable.CodeScannerView_csvVibratorDuration, DEFAULT_VIBRATOR_DURATION
+            )
+        )
+        setLazerHeight(
+            a.getDimensionPixelOffset(
+                R.styleable.CodeScannerView_csvLazerHeight,
+                (DEFAULT_LAZER_HEIGHT * density).roundToInt()
+            )
+        )
+        lazerAnim = a.getInt(R.styleable.CodeScannerView_csvLazerAnim, 0)
+        lazerAnimDuration =
+            a.getInt(R.styleable.CodeScannerView_csvLazerAnimDuration, DEFAULT_LAZER_DURATION)
 
-    @SuppressLint("UnsafeOptInUsageError")
-    private fun processImageProxy(
-        barcodeScanner: BarcodeScanner,
-        imageProxy: ImageProxy
-    ) {
-        val inputImage =
-            InputImage.fromMediaImage(imageProxy.image!!, imageProxy.imageInfo.rotationDegrees)
-
-        barcodeScanner.process(inputImage)
-            .addOnSuccessListener { barcodes ->
-                barcodes.forEach {
-                    val result = it.rawValue ?: ""
-
-                    if (result.isNotEmpty() && successfullyRead.not()) {
-                        successfullyRead = true
-
-                        onResult.invoke(result)
-                    }
-                }
-            }
-            .addOnFailureListener {
-                Log.e(TAG, it.message.toString())
-            }.addOnCompleteListener {
-                // When the image is from CameraX analysis use case, must call image.close() on received
-                // images when finished using them. Otherwise, new images may not be received or the camera
-                // may stall.
-                imageProxy.close()
-            }
+        a.recycle()
     }
 
     fun setMaskColor(@ColorInt color: Int) {
@@ -316,6 +135,12 @@ class CodeScannerView(context: Context, private val attrs: AttributeSet?) :
 
     fun setFrameThickness(@Px thickness: Int) {
         binding.viewFinderView.frameThickness = thickness
+    }
+
+    fun setLazerHeight(@Px height: Int) {
+        val lp = binding.lazerView.layoutParams as FrameLayout.LayoutParams
+        lp.height = height
+        binding.lazerView.layoutParams = lp
     }
 
     fun setFrameCornersSize(@Px size: Int) {
@@ -331,24 +156,75 @@ class CodeScannerView(context: Context, private val attrs: AttributeSet?) :
         @FloatRange(from = 0.0, fromInclusive = false) ratioHeight: Float
     ) {
         binding.viewFinderView.setFrameAspectRatio(ratioWidth, ratioHeight)
+
+        val lp = binding.lazerViewGroup.layoutParams as LayoutParams
+        lp.dimensionRatio = "$ratioWidth:$ratioHeight"
+        binding.lazerViewGroup.layoutParams = lp
     }
 
     fun setFrameSize(@FloatRange(from = 0.1, to = 1.0) size: Float) {
         binding.viewFinderView.frameSize = size
+
+        val lp = binding.lazerViewGroup.layoutParams as LayoutParams
+        lp.matchConstraintPercentWidth = size
+        binding.lazerViewGroup.layoutParams = lp
     }
 
-    private fun aspectRatio(width: Int, height: Int): Int {
-        val previewRatio = max(width, height).toDouble() / min(width, height)
-        if (abs(previewRatio - RATIO_4_3_VALUE) <= abs(previewRatio - RATIO_16_9_VALUE)) {
-            return AspectRatio.RATIO_4_3
+    fun setLazerColor(@ColorInt color: Int) {
+        binding.lazerView.setBackgroundColor(color)
+    }
+
+    fun setLazerVisible(visible: Boolean) {
+        binding.lazerView.isVisible = visible
+    }
+
+    fun setVibratorDuration(duration: Int) {
+        binding.previewView.setVibratorDuration(duration)
+    }
+
+
+    private fun startLazerAnim(toTop: Boolean) {
+        binding.lazerView.animate().setListener(null)
+
+        if (lazerAnim == 0) {
+            val animY: Float = binding.lazerViewGroup.height.toFloat() / 2
+            val translationY = if (toTop) -animY else animY
+
+            val firstTime = binding.lazerView.translationY == 0f
+
+            binding.lazerView.animate()
+                .setDuration(if (firstTime) lazerAnimDuration.toLong() / 2 else lazerAnimDuration.toLong())
+                .translationY(translationY)
+                .setInterpolator(LinearInterpolator())
+                .setListener(object : AnimatorListenerAdapter() {
+                    override fun onAnimationEnd(animation: Animator) {
+                        startLazerAnim(!toTop)
+                    }
+                })
+        } else {
+            binding.lazerView.animate()
+                .setDuration(lazerAnimDuration.toLong())
+                .alpha(if (binding.lazerView.alpha > 0) 0f else 0.8f)
+                .setListener(object : AnimatorListenerAdapter() {
+                    override fun onAnimationEnd(animation: Animator) {
+                        startLazerAnim(true)
+                    }
+                })
         }
-        return AspectRatio.RATIO_16_9
     }
 
     companion object {
-        private val TAG = CodeScannerView::class.java.simpleName
-
-        private const val RATIO_4_3_VALUE = 4.0 / 3.0
-        private const val RATIO_16_9_VALUE = 16.0 / 9.0
+        private const val DEFAULT_MASK_COLOR = 0x77000000
+        private const val DEFAULT_FRAME_COLOR = Color.WHITE
+        private const val DEFAULT_FRAME_THICKNESS_DP = 4f
+        private const val DEFAULT_FRAME_ASPECT_RATIO_WIDTH = 1f
+        private const val DEFAULT_FRAME_ASPECT_RATIO_HEIGHT = 1f
+        private const val DEFAULT_FRAME_CORNER_SIZE_DP = 40f
+        private const val DEFAULT_FRAME_CORNERS_RADIUS_DP = 10f
+        private const val DEFAULT_FRAME_SIZE = 0.75f
+        private const val DEFAULT_VIBRATOR_DURATION = 100
+        private const val DEFAULT_LAZER_COLOR = Color.WHITE
+        private const val DEFAULT_LAZER_HEIGHT = 1f
+        private const val DEFAULT_LAZER_DURATION = 2000
     }
 }
