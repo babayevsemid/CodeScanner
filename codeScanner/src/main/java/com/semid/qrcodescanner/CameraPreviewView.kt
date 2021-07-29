@@ -15,8 +15,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.core.*
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.fragment.app.Fragment
-import androidx.lifecycle.LifecycleOwner
-import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.*
 import com.google.mlkit.vision.barcode.Barcode
 import com.google.mlkit.vision.barcode.BarcodeScanner
 import com.google.mlkit.vision.barcode.BarcodeScannerOptions
@@ -35,7 +34,7 @@ import kotlin.math.max
 import kotlin.math.min
 
 
-class CameraPreviewView(context: Context, attrs: AttributeSet?) : FrameLayout(context, attrs) {
+class CameraPreviewView(context: Context, attrs: AttributeSet?) : FrameLayout(context, attrs) , LifecycleObserver{
     private val binding by lazy {
         LayoutCameraPreviewViewBinding.inflate(LayoutInflater.from(context), this)
     }
@@ -57,6 +56,7 @@ class CameraPreviewView(context: Context, attrs: AttributeSet?) : FrameLayout(co
             return aspectRatio(metrics.widthPixels, metrics.heightPixels)
         }
 
+    var torchState: (isON: Boolean) -> Unit = {}
     var cameraPermission: (granted: Boolean) -> Unit = {}
     var onResult: (result: String) -> Unit = {}
 
@@ -68,10 +68,11 @@ class CameraPreviewView(context: Context, attrs: AttributeSet?) : FrameLayout(co
             .build()
     }
 
-
     fun init(fragment: Fragment) {
         fragment.run {
             lifecycleOwner = this
+            lifecycle.addObserver(this@CameraPreviewView)
+
             val application = requireActivity().application
 
             val viewModel = ViewModelProvider(
@@ -89,6 +90,8 @@ class CameraPreviewView(context: Context, attrs: AttributeSet?) : FrameLayout(co
     fun init(activity: AppCompatActivity) {
         activity.run {
             lifecycleOwner = this
+            lifecycle.addObserver(this@CameraPreviewView)
+
             val application = application
 
             val viewModel = ViewModelProvider(
@@ -140,6 +143,7 @@ class CameraPreviewView(context: Context, attrs: AttributeSet?) : FrameLayout(co
         successfullyRead = false
     }
 
+    @SuppressLint("RestrictedApi")
     private fun bindPreviewUseCase() {
         if (cameraProvider == null) {
             return
@@ -239,6 +243,8 @@ class CameraPreviewView(context: Context, attrs: AttributeSet?) : FrameLayout(co
     fun enableTorch(enable: Boolean) {
         if (previewUseCase?.camera?.cameraInfo?.hasFlashUnit() == true)
             previewUseCase?.camera?.cameraControl?.enableTorch(enable)
+
+        checkTorchState()
     }
 
     @SuppressLint("RestrictedApi")
@@ -262,8 +268,13 @@ class CameraPreviewView(context: Context, attrs: AttributeSet?) : FrameLayout(co
         }
     }
 
-    fun setVibratorDuration(duration: Int){
-        vibratorDuration=duration
+    fun setVibratorDuration(duration: Int) {
+        vibratorDuration = duration
+    }
+
+    @OnLifecycleEvent(Lifecycle.Event.ON_RESUME)
+    private fun checkTorchState(){
+        torchState.invoke(isEnabledTorch())
     }
 
     private fun aspectRatio(width: Int, height: Int): Int {

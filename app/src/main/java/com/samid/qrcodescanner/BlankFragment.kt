@@ -1,37 +1,46 @@
 package com.samid.qrcodescanner
 
-import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
 import android.widget.Toast
-import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
-import com.samid.qrcodescanner.databinding.ActivityMainBinding
+import androidx.fragment.app.Fragment
+import com.samid.qrcodescanner.databinding.FragmentBlankBinding
 import com.semid.qrcodescanner.BarcodeFormat
 
-class MainActivity : AppCompatActivity() {
+
+class BlankFragment : Fragment() {
     private val binding by lazy {
-        ActivityMainBinding.inflate(layoutInflater)
+        FragmentBlankBinding.inflate(layoutInflater)
     }
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContentView(binding.root)
+    override fun onCreateView(
+        inflater: LayoutInflater, container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View {
 
+        init()
+        return binding.root
+    }
+
+    private fun init() {
         binding.scanner.init(this)
         binding.scanner.setBarcodeFormats(arrayListOf(BarcodeFormat.FORMAT_QR_CODE))
 
         binding.scanner.torchState = {
             binding.flashBtn.icon =
                 ContextCompat.getDrawable(
-                    applicationContext,
+                    requireContext(),
                     if (it) R.drawable.ic_flash_on else R.drawable.ic_flash_off
                 )
         }
 
         binding.scanner.onResult = {
-            Toast.makeText(applicationContext, it, Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
 
             Handler(Looper.myLooper()!!).postDelayed({
                 binding.scanner.readNext()
@@ -39,9 +48,8 @@ class MainActivity : AppCompatActivity() {
         }
 
         binding.flashBtn.setOnClickListener {
-            startActivity(Intent(this,TestFragmentActivity::class.java))
-
             binding.scanner.changeTorchState()
         }
     }
+
 }

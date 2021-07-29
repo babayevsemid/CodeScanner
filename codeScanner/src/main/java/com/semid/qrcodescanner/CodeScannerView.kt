@@ -25,9 +25,10 @@ class CodeScannerView(context: Context, private val attrs: AttributeSet?) :
     private val binding by lazy {
         LayoutQrCodeScannerBinding.inflate(LayoutInflater.from(context), this)
     }
-    var lazerAnim = 0
-    var lazerAnimDuration = 0
+    private var lazerAnim = 0
+    private var lazerAnimDuration = 0
 
+    var torchState: (isON: Boolean) -> Unit = {}
     var cameraPermission: (granted: Boolean) -> Unit = {}
     var onResult: (result: String) -> Unit = {}
 
@@ -51,10 +52,16 @@ class CodeScannerView(context: Context, private val attrs: AttributeSet?) :
         binding.previewView.enableTorch(enable)
     }
 
+    fun changeTorchState() {
+        binding.previewView.enableTorch(!isEnabledTorch())
+    }
+
     fun isEnabledTorch() = binding.previewView.isEnabledTorch()
 
     init {
+        binding.previewView.torchState = { torchState.invoke(it) }
         binding.previewView.onResult = { onResult.invoke(it) }
+
         binding.previewView.cameraPermission = {
             startLazerAnim(false)
             cameraPermission.invoke(it)
