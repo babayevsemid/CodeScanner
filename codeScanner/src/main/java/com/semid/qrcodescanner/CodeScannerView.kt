@@ -28,8 +28,13 @@ class CodeScannerView(context: Context, private val attrs: AttributeSet?) :
     private var lazerAnim = 0
     private var lazerAnimDuration = 0
 
+    @JvmField
     var torchState: (isON: Boolean) -> Unit = {}
+
+    @JvmField
     var cameraPermission: (granted: Boolean) -> Unit = {}
+
+    @JvmField
     var onResult: (result: String) -> Unit = {}
 
     fun init(fragment: Fragment) {
