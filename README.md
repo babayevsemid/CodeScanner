@@ -12,7 +12,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'com.github.babayevsemid:CodeScanner:1.0.0'
+    implementation 'com.github.babayevsemid:CodeScanner:1.0.1'
       
 }
 ```
@@ -36,6 +36,9 @@ scannerView.onResult = {
 
 scannerView.cameraPermission = {
 //it == true permission granted
+
+//if permission denied request again 
+scannerView.requestCameraPermission(context)
 }
 
 ``` 
