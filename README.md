@@ -63,7 +63,7 @@ scannerView.readNext()
 ```
 scannerView.init(this)
 
-scannerView.getOnResult() = result -> {
+scannerView.onResult = result -> {
  
 //result
 
