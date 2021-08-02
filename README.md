@@ -112,6 +112,8 @@ scannerView.torchState = {
 scannerView.changeTorchState() // if torch is off change to on
 
 scannerView.isEnabledTorch() //check torch status
+
+scannerView.vibrate() //manual vibrate
  ```
  
  ### Attributes
