@@ -3,6 +3,7 @@ package com.semid.qrcodescanner
 import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Context
+import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Build
 import android.os.VibrationEffect
@@ -29,6 +30,7 @@ import com.karumi.dexter.listener.PermissionGrantedResponse
 import com.karumi.dexter.listener.PermissionRequest
 import com.karumi.dexter.listener.single.PermissionListener
 import com.semid.qrcodescanner.databinding.LayoutCameraPreviewViewBinding
+import java.io.File
 import java.util.concurrent.Executors
 import kotlin.math.abs
 import kotlin.math.max
@@ -61,7 +63,7 @@ class CameraPreviewView(context: Context, attrs: AttributeSet?) : FrameLayout(co
     var torchState: (isON: Boolean) -> Unit = {}
     var cameraPermission: (granted: Boolean) -> Unit = {}
     var onResult: (result: String) -> Unit = {}
-    var onResultFromUri: (result: String) -> Unit = {}
+    var onResultFromFile: (result: String) -> Unit = {}
 
     init {
         binding
@@ -242,10 +244,26 @@ class CameraPreviewView(context: Context, attrs: AttributeSet?) : FrameLayout(co
             }
     }
 
+    fun scanFromUri(uri: Uri?) {
+        uri?.let {
+            scanFromInputImage(InputImage.fromFilePath(context, uri))
+        }
+    }
 
-    fun scanFromUri(uri: Uri) {
-        val image = InputImage.fromFilePath(context, uri)
+    fun scanFromPath(path: String?) {
+        path?.let {
+            val uri = Uri.fromFile(File(it))
+            scanFromInputImage(InputImage.fromFilePath(context, uri))
+        }
+    }
 
+    fun scanFromBitmap(bitmap: Bitmap?) {
+        bitmap?.let {
+            scanFromInputImage(InputImage.fromBitmap(bitmap, 0))
+        }
+    }
+
+    private fun scanFromInputImage(image: InputImage) {
         val options = BarcodeScannerOptions.Builder()
             .setBarcodeFormats(barcodeFormats[0], *barcodeFormats)
             .build()
@@ -261,14 +279,14 @@ class CameraPreviewView(context: Context, attrs: AttributeSet?) : FrameLayout(co
                             successfullyRead = true
 
                             vibrate()
-                            onResultFromUri.invoke(result)
+                            onResultFromFile.invoke(result)
                         }
                     }
                 } else
-                    onResultFromUri.invoke("")
+                    onResultFromFile.invoke("")
             }
             .addOnFailureListener {
-                onResultFromUri.invoke("")
+                onResultFromFile.invoke("")
             }
     }
 

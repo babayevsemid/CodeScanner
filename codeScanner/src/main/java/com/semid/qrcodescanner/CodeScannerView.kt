@@ -3,6 +3,7 @@ package com.semid.qrcodescanner
 import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
 import android.content.Context
+import android.graphics.Bitmap
 import android.graphics.Color
 import android.net.Uri
 import android.util.AttributeSet
@@ -39,7 +40,7 @@ class CodeScannerView(context: Context, private val attrs: AttributeSet?) :
     var onResult: (result: String) -> Unit = {}
 
     @JvmField
-    var onResultFromUri: (result: String) -> Unit = {}
+    var onResultFromFile: (result: String) -> Unit = {}
 
     fun init(fragment: Fragment) {
         binding.previewView.init(fragment)
@@ -57,8 +58,16 @@ class CodeScannerView(context: Context, private val attrs: AttributeSet?) :
         binding.previewView.setBarcodeFormats(formats)
     }
 
-    fun scanFromUri(uri: Uri) {
+    fun scanFromUri(uri: Uri?) {
         binding.previewView.scanFromUri(uri)
+    }
+
+    fun scanFromPath(path: String?) {
+        binding.previewView.scanFromPath(path)
+    }
+
+    fun scanFromBitmap(bitmap: Bitmap?) {
+        binding.previewView.scanFromBitmap(bitmap)
     }
 
     fun requestCameraPermission(context: Context) {
@@ -82,7 +91,7 @@ class CodeScannerView(context: Context, private val attrs: AttributeSet?) :
     init {
         binding.previewView.torchState = { torchState.invoke(it) }
         binding.previewView.onResult = { onResult.invoke(it) }
-        binding.previewView.onResultFromUri = { onResultFromUri.invoke(it) }
+        binding.previewView.onResultFromFile = { onResultFromFile.invoke(it) }
 
         binding.previewView.cameraPermission = {
             startLazerAnim(false)
