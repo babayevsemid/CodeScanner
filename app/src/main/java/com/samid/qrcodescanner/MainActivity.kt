@@ -1,6 +1,7 @@
 package com.samid.qrcodescanner
 
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -8,7 +9,10 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import com.samid.qrcodescanner.databinding.ActivityMainBinding
+import com.semid.filechooser.FileChooserActivity
+import com.semid.filechooser.FileTypeEnum
 import com.semid.qrcodescanner.BarcodeFormat
+import java.io.File
 
 class MainActivity : AppCompatActivity() {
     private val binding by lazy {
@@ -37,6 +41,21 @@ class MainActivity : AppCompatActivity() {
                 binding.scanner.readNext()
             }, 1000)
         }
+
+        binding.scanner.onResultFromUri = {
+            Toast.makeText(applicationContext, it, Toast.LENGTH_SHORT).show()
+
+            Handler(Looper.myLooper()!!).postDelayed({
+                binding.scanner.readNext()
+            }, 1000)
+        }
+
+        val fileChooser = FileChooserActivity(this)
+        fileChooser.fileLiveData
+            .observe(this, {
+                binding.scanner.scanFromUri(Uri.fromFile(File(it.path)))
+            })
+        fileChooser.requestFile(FileTypeEnum.CHOOSE_PHOTO)
 
         binding.flashBtn.setOnClickListener {
             startActivity(Intent(this,TestFragmentActivity::class.java))

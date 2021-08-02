@@ -3,6 +3,7 @@ package com.semid.qrcodescanner
 import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Context
+import android.net.Uri
 import android.os.Build
 import android.os.VibrationEffect
 import android.os.Vibrator
@@ -34,7 +35,8 @@ import kotlin.math.max
 import kotlin.math.min
 
 
-class CameraPreviewView(context: Context, attrs: AttributeSet?) : FrameLayout(context, attrs) , LifecycleObserver{
+class CameraPreviewView(context: Context, attrs: AttributeSet?) : FrameLayout(context, attrs),
+    LifecycleObserver {
     private val binding by lazy {
         LayoutCameraPreviewViewBinding.inflate(LayoutInflater.from(context), this)
     }
@@ -59,6 +61,7 @@ class CameraPreviewView(context: Context, attrs: AttributeSet?) : FrameLayout(co
     var torchState: (isON: Boolean) -> Unit = {}
     var cameraPermission: (granted: Boolean) -> Unit = {}
     var onResult: (result: String) -> Unit = {}
+    var onResultFromUri: (result: String) -> Unit = {}
 
     init {
         binding
@@ -106,7 +109,7 @@ class CameraPreviewView(context: Context, attrs: AttributeSet?) : FrameLayout(co
         }
     }
 
-      fun requestCamera(context: Context?) {
+    fun requestCamera(context: Context?) {
         Dexter.withContext(context)
             .withPermission(Manifest.permission.CAMERA)
             .withListener(object : PermissionListener {
@@ -233,9 +236,39 @@ class CameraPreviewView(context: Context, attrs: AttributeSet?) : FrameLayout(co
                 }
             }
             .addOnFailureListener {
-                Log.e(TAG, it.message.toString())
+                onResult.invoke("")
             }.addOnCompleteListener {
                 imageProxy.close()
+            }
+    }
+
+
+    fun scanFromUri(uri: Uri) {
+        val image = InputImage.fromFilePath(context, uri)
+
+        val options = BarcodeScannerOptions.Builder()
+            .setBarcodeFormats(barcodeFormats[0], *barcodeFormats)
+            .build()
+
+        val scanner = BarcodeScanning.getClient(options)
+        scanner.process(image)
+            .addOnSuccessListener { barcodes ->
+                if (barcodes.size > 0) {
+                    for (barcode in barcodes) {
+                        val result = barcode.rawValue ?: ""
+
+                        if (result.isNotEmpty() && successfullyRead.not()) {
+                            successfullyRead = true
+
+                            vibrate()
+                            onResultFromUri.invoke(result)
+                        }
+                    }
+                } else
+                    onResultFromUri.invoke("")
+            }
+            .addOnFailureListener {
+                onResultFromUri.invoke("")
             }
     }
 
@@ -273,7 +306,7 @@ class CameraPreviewView(context: Context, attrs: AttributeSet?) : FrameLayout(co
     }
 
     @OnLifecycleEvent(Lifecycle.Event.ON_RESUME)
-    private fun checkTorchState(){
+    private fun checkTorchState() {
         torchState.invoke(isEnabledTorch())
     }
 

@@ -4,6 +4,7 @@ import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
 import android.content.Context
 import android.graphics.Color
+import android.net.Uri
 import android.util.AttributeSet
 import android.view.LayoutInflater
 import android.view.animation.LinearInterpolator
@@ -37,6 +38,9 @@ class CodeScannerView(context: Context, private val attrs: AttributeSet?) :
     @JvmField
     var onResult: (result: String) -> Unit = {}
 
+    @JvmField
+    var onResultFromUri: (result: String) -> Unit = {}
+
     fun init(fragment: Fragment) {
         binding.previewView.init(fragment)
     }
@@ -53,8 +57,16 @@ class CodeScannerView(context: Context, private val attrs: AttributeSet?) :
         binding.previewView.setBarcodeFormats(formats)
     }
 
+    fun scanFromUri(uri: Uri) {
+        binding.previewView.scanFromUri(uri)
+    }
+
     fun requestCameraPermission(context: Context) {
         binding.previewView.requestCamera(context)
+    }
+
+    fun vibrate() {
+        binding.previewView.vibrate()
     }
 
     fun enableTorch(enable: Boolean) {
@@ -70,6 +82,7 @@ class CodeScannerView(context: Context, private val attrs: AttributeSet?) :
     init {
         binding.previewView.torchState = { torchState.invoke(it) }
         binding.previewView.onResult = { onResult.invoke(it) }
+        binding.previewView.onResultFromUri = { onResultFromUri.invoke(it) }
 
         binding.previewView.cameraPermission = {
             startLazerAnim(false)
