@@ -12,7 +12,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'com.github.babayevsemid:CodeScanner:1.0.3'
+    implementation 'com.github.babayevsemid:CodeScanner:1.0.4'
       
 }
 ```
