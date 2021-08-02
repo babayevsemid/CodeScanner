@@ -25,25 +25,7 @@ dependencies {
         android:layout_height="match_parent" /> 
 ```
 
-### Use in activity
-
-```
-scannerView.init(this)
-
-scannerView.onResult = {
-    //it result
-}
-
-scannerView.cameraPermission = {
-    //it == true permission granted
-
-    //if permission denied request again 
-    scannerView.requestCameraPermission(context)
-}
-
-``` 
-
-### Use in fragment with check permission
+### Use in Fragment or Activity
 
 ```
 scannerView.init(this)
@@ -55,8 +37,15 @@ scannerView.onResult = {
     scannerView.readNext()
 }
 
-```
- 
+scannerView.cameraPermission = {
+    //it == true permission granted
+
+    //if permission denied request again 
+    scannerView.requestCameraPermission(context)
+}
+
+```  
+
 ### Scan from image file
 
 ```
