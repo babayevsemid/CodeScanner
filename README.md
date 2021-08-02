@@ -31,14 +31,14 @@ dependencies {
 scannerView.init(this)
 
 scannerView.onResult = {
-//it result
+    //it result
 }
 
 scannerView.cameraPermission = {
-//it == true permission granted
+    //it == true permission granted
 
-//if permission denied request again 
-scannerView.requestCameraPermission(context)
+    //if permission denied request again 
+    scannerView.requestCameraPermission(context)
 }
 
 ``` 
@@ -49,11 +49,38 @@ scannerView.requestCameraPermission(context)
 scannerView.init(this)
 
 scannerView.onResult = {
-//it result
+    //it result
 
-// For read next
-scannerView.readNext()
+    // For read next
+    scannerView.readNext()
 }
+
+```
+ 
+### Scan from image file
+
+```
+scannerView.init(this)
+
+scannerView.onResultFromFile = {
+    //it result
+
+    if(it.isEmpty){
+        //Image read failed
+    }
+
+    // For read next
+    scannerView.readNext()
+}
+
+// From image path
+scannerView.scanFromPath(path)
+
+// From bitmap
+scannerView.scanFromBitmap(bitmap)
+
+// From image uri
+scannerView.scanFromUri(uri)
 
 ```
 
@@ -63,14 +90,13 @@ scannerView.readNext()
 ```
 scannerView.init(this)
 
-scannerView.onResult = result -> {
- 
-//result
+scannerView.onResult = result -> { 
+    //result
 
-// For read next
-scannerView.readNext();
+    // For read next
+    scannerView.readNext();
 
-return null;
+    return null;
 }
 
 ```
@@ -80,7 +106,7 @@ return null;
 scannerView.setBarcodeFormats(arrayListOf(BarcodeFormat.FORMAT_QR_CODE)) //Only QrCode
 
 scannerView.torchState = {
-//it Torch ON
+    //it Torch ON
 }
 
 scannerView.changeTorchState() // if torch is off change to on
