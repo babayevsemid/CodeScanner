@@ -12,7 +12,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'com.github.babayevsemid:CodeScanner:1.0.1'
+    implementation 'com.github.babayevsemid:CodeScanner:1.0.3'
       
 }
 ```
@@ -57,6 +57,23 @@ scannerView.readNext()
 
 ```
 
+
+### Use in Java
+
+```
+scannerView.init(this)
+
+scannerView.onResult = result -> {
+ 
+//result
+
+// For read next
+scannerView.readNext();
+
+return null;
+}
+
+```
 
 ### Extra
 ```
