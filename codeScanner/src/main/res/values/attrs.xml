@@ -14,9 +14,14 @@
         <attr name="csvLazerColor" format="color" />
         <attr name="csvLazerVisible" format="boolean" />
         <attr name="csvLazerAnimDuration" format="integer" />
-        <attr name="csvLazerAnim" format="enum" >
-            <enum name="linear" value="0"/>
-            <enum name="fade" value="1"/>
+        <attr name="csvLazerAnim" format="enum">
+            <enum name="linear" value="0" />
+            <enum name="fade" value="1" />
+        </attr>
+        <attr name="csvDeniedType" format="enum">
+            <enum name="none" value="0" />
+            <enum name="snack_bar" value="1" />
+            <enum name="dialog" value="2" />
         </attr>
     </declare-styleable>
 </resources>

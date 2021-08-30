@@ -42,6 +42,24 @@ class CodeScannerView(context: Context, private val attrs: AttributeSet?) :
     @JvmField
     var onResultFromFile: (result: String) -> Unit = {}
 
+    @JvmField
+    var permissionMessageCanceled: (autoCancel: Boolean) -> Unit = {}
+
+    init {
+        binding.previewView.torchState = { torchState.invoke(it) }
+        binding.previewView.onResult = { onResult.invoke(it) }
+        binding.previewView.onResultFromFile = { onResultFromFile.invoke(it) }
+
+        binding.previewView.cameraPermission = {
+            startLazerAnim(false)
+            cameraPermission.invoke(it)
+        }
+
+        binding.previewView.permissionMessageCanceled = { permissionMessageCanceled.invoke(it) }
+
+        initAttrs()
+    }
+
     fun init(fragment: Fragment) {
         binding.previewView.init(fragment)
     }
@@ -88,18 +106,6 @@ class CodeScannerView(context: Context, private val attrs: AttributeSet?) :
 
     fun isEnabledTorch() = binding.previewView.isEnabledTorch()
 
-    init {
-        binding.previewView.torchState = { torchState.invoke(it) }
-        binding.previewView.onResult = { onResult.invoke(it) }
-        binding.previewView.onResultFromFile = { onResultFromFile.invoke(it) }
-
-        binding.previewView.cameraPermission = {
-            startLazerAnim(false)
-            cameraPermission.invoke(it)
-        }
-
-        initAttrs()
-    }
 
     private fun initAttrs() {
         val density = context.resources.displayMetrics.density
@@ -156,6 +162,8 @@ class CodeScannerView(context: Context, private val attrs: AttributeSet?) :
                 (DEFAULT_LAZER_HEIGHT * density).roundToInt()
             )
         )
+        setDeniedType(BarcodeDeniedType.find(a.getInt(R.styleable.CodeScannerView_csvDeniedType, BarcodeDeniedType.SNACK_BAR.id)))
+
         lazerAnim = a.getInt(R.styleable.CodeScannerView_csvLazerAnim, 0)
         lazerAnimDuration =
             a.getInt(R.styleable.CodeScannerView_csvLazerAnimDuration, DEFAULT_LAZER_DURATION)
@@ -220,6 +228,13 @@ class CodeScannerView(context: Context, private val attrs: AttributeSet?) :
         binding.previewView.setVibratorDuration(duration)
     }
 
+    fun setDeniedType(deniedType: BarcodeDeniedType) {
+        binding.previewView.setDeniedType(deniedType)
+    }
+
+    fun setDeniedModel(deniedModel: BarcodeDeniedModel) {
+        binding.previewView.setDeniedModel(deniedModel)
+    }
 
     private fun startLazerAnim(toTop: Boolean) {
         binding.lazerView.animate().setListener(null)

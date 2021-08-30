@@ -3,21 +3,28 @@ package com.semid.qrcodescanner
 import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Context
+import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Build
 import android.os.VibrationEffect
 import android.os.Vibrator
+import android.provider.Settings
 import android.util.AttributeSet
 import android.util.DisplayMetrics
 import android.util.Log
 import android.view.LayoutInflater
 import android.widget.FrameLayout
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.core.*
 import androidx.camera.lifecycle.ProcessCameraProvider
+import androidx.core.content.ContextCompat
+import androidx.core.content.ContextCompat.startActivity
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.*
+import com.google.android.material.snackbar.Snackbar
 import com.google.mlkit.vision.barcode.Barcode
 import com.google.mlkit.vision.barcode.BarcodeScanner
 import com.google.mlkit.vision.barcode.BarcodeScannerOptions
@@ -50,13 +57,18 @@ class CameraPreviewView(context: Context, attrs: AttributeSet?) : FrameLayout(co
     private var previewUseCase: Preview? = null
     private var analysisUseCase: ImageAnalysis? = null
 
+    private var deniedModel = BarcodeDeniedModel()
+    private var deniedType = BarcodeDeniedType.SNACK_BAR
     private var barcodeFormats = intArrayOf(Barcode.FORMAT_ALL_FORMATS)
+    private var reCheckPermission = false
     private var successfullyRead = false
     private var vibratorDuration = 0
 
     private val screenAspectRatio: Int
         get() {
-            val metrics = DisplayMetrics().also { binding.previewView.display.getRealMetrics(it) }
+            val metrics = context.resources.displayMetrics.also {
+                binding.previewView.display.getRealMetrics(it)
+            }
             return aspectRatio(metrics.widthPixels, metrics.heightPixels)
         }
 
@@ -64,6 +76,7 @@ class CameraPreviewView(context: Context, attrs: AttributeSet?) : FrameLayout(co
     var cameraPermission: (granted: Boolean) -> Unit = {}
     var onResult: (result: String) -> Unit = {}
     var onResultFromFile: (result: String) -> Unit = {}
+    var permissionMessageCanceled: (autoCancel: Boolean) -> Unit = {}
 
     init {
         binding
@@ -112,29 +125,91 @@ class CameraPreviewView(context: Context, attrs: AttributeSet?) : FrameLayout(co
     }
 
     fun requestCamera(context: Context?) {
+        reCheckPermission = false
+
+        val permission = object : PermissionListener {
+            override fun onPermissionGranted(permissionGrantedResponse: PermissionGrantedResponse) {
+                releaseCamera()
+                cameraPermission.invoke(true)
+            }
+
+            override fun onPermissionDenied(permissionDeniedResponse: PermissionDeniedResponse) {
+                reCheckPermission = true
+                cameraPermission.invoke(false)
+
+                showDeniedMessage()
+            }
+
+            override fun onPermissionRationaleShouldBeShown(
+                permissionRequest: PermissionRequest?,
+                permissionToken: PermissionToken
+            ) {
+                permissionToken.continuePermissionRequest()
+            }
+        }
+
         Dexter.withContext(context)
             .withPermission(Manifest.permission.CAMERA)
-            .withListener(object : PermissionListener {
-                override fun onPermissionGranted(permissionGrantedResponse: PermissionGrantedResponse) {
-                    releaseCamera()
-                    cameraPermission.invoke(true)
-                }
+            .withListener(permission)
+            .check()
+    }
 
-                override fun onPermissionDenied(permissionDeniedResponse: PermissionDeniedResponse) {
-                    cameraPermission.invoke(false)
-                }
+    private fun showDeniedMessage() {
+        val titleText =
+            deniedModel.title ?: context.getString(R.string.camera_access_title)
+        val settingsText =
+            deniedModel.settingButtonText ?: context.getString(R.string.settings)
+        val cancelText =
+            deniedModel.cancelButtonText ?: context.getString(R.string.cancel)
 
-                override fun onPermissionRationaleShouldBeShown(
-                    permissionRequest: PermissionRequest?,
-                    permissionToken: PermissionToken
-                ) {
-                    permissionToken.continuePermissionRequest()
-                }
-            }).check()
+        when (deniedType) {
+            BarcodeDeniedType.SNACK_BAR -> {
+                Snackbar.make(this, titleText, deniedModel.snackBarDuration)
+                    .setAction(settingsText) {
+                        showAppSettings()
+                    }.addCallback(object : Snackbar.Callback() {
+                        override fun onDismissed(transientBottomBar: Snackbar?, event: Int) {
+                            permissionMessageCanceled(event != 1)
+                        }
+                    }).show()
+            }
+            BarcodeDeniedType.DIALOG -> {
+                AlertDialog.Builder(context)
+                    .setTitle(deniedModel.title ?: context.getString(R.string.camera_access_title))
+                    .setPositiveButton(settingsText) { d, _ ->
+                        showAppSettings()
+                        permissionMessageCanceled(false)
+                        d.dismiss()
+                    }.setNegativeButton(cancelText) { d, _ ->
+                        d.cancel()
+                    }.setOnDismissListener {
+                    }.setOnCancelListener {
+                        permissionMessageCanceled(true)
+                    }.create().show()
+            }
+            else -> {
+            }
+        }
+    }
+
+    private fun showAppSettings() {
+        val intent = Intent(
+            Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+            Uri.fromParts("package", context.packageName, null)
+        )
+        startActivity(context, intent, null)
     }
 
     fun setBarcodeFormats(formats: List<BarcodeFormat>) {
         barcodeFormats = formats.map { it.id }.toIntArray()
+    }
+
+    fun setDeniedType(deniedType: BarcodeDeniedType) {
+        this.deniedType = deniedType
+    }
+
+    fun setDeniedModel(deniedModel: BarcodeDeniedModel) {
+        this.deniedModel = deniedModel
     }
 
     private fun releaseCamera() {
@@ -327,6 +402,22 @@ class CameraPreviewView(context: Context, attrs: AttributeSet?) : FrameLayout(co
     private fun checkTorchState() {
         torchState.invoke(isEnabledTorch())
     }
+
+    @OnLifecycleEvent(Lifecycle.Event.ON_START)
+    private fun reCheckPermission() {
+        if (reCheckPermission) {
+//            if (cameraPermissionIsGranted()) {
+            requestCamera(context)
+//            } else {
+//                showDeniedMessage()
+//            }
+        }
+    }
+
+    private fun cameraPermissionIsGranted() =
+        ContextCompat.checkSelfPermission(
+            context, Manifest.permission.CAMERA
+        ) == PackageManager.PERMISSION_GRANTED
 
     private fun aspectRatio(width: Int, height: Int): Int {
         val previewRatio = max(width, height).toDouble() / min(width, height)

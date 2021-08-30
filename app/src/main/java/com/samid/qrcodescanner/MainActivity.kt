@@ -4,6 +4,7 @@ import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
@@ -23,6 +24,10 @@ class MainActivity : AppCompatActivity() {
 
         binding.scanner.init(this)
         binding.scanner.setBarcodeFormats(arrayListOf(BarcodeFormat.FORMAT_QR_CODE))
+
+        binding.scanner.permissionMessageCanceled = {
+            Log.e("permissionMessag","$it")
+        }
 
         binding.scanner.torchState = {
             binding.flashBtn.icon =
@@ -47,13 +52,6 @@ class MainActivity : AppCompatActivity() {
                 binding.scanner.readNext()
             }, 1000)
         }
-
-        val fileChooser = FileChooserActivity(this)
-        fileChooser.fileLiveData
-            .observe(this, {
-                binding.scanner.scanFromPath(it.path)
-            })
-        fileChooser.requestFile(FileTypeEnum.CHOOSE_PHOTO)
 
         binding.flashBtn.setOnClickListener {
             startActivity(Intent(this, TestFragmentActivity::class.java))
