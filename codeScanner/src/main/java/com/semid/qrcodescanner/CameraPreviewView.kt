@@ -12,7 +12,6 @@ import android.os.VibrationEffect
 import android.os.Vibrator
 import android.provider.Settings
 import android.util.AttributeSet
-import android.util.DisplayMetrics
 import android.util.Log
 import android.view.LayoutInflater
 import android.widget.FrameLayout
@@ -25,10 +24,10 @@ import androidx.core.content.ContextCompat.startActivity
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.*
 import com.google.android.material.snackbar.Snackbar
-import com.google.mlkit.vision.barcode.Barcode
 import com.google.mlkit.vision.barcode.BarcodeScanner
 import com.google.mlkit.vision.barcode.BarcodeScannerOptions
 import com.google.mlkit.vision.barcode.BarcodeScanning
+import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.common.InputImage
 import com.karumi.dexter.Dexter
 import com.karumi.dexter.PermissionToken
