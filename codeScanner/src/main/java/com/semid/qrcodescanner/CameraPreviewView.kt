@@ -66,9 +66,7 @@ class CameraPreviewView(context: Context, attrs: AttributeSet?) : FrameLayout(co
 
     private val screenAspectRatio: Int
         get() {
-            val metrics = context.resources.displayMetrics.also {
-                binding.previewView.display.getRealMetrics(it)
-            }
+            val metrics = context.resources.displayMetrics
             return aspectRatio(metrics.widthPixels, metrics.heightPixels)
         }
 
