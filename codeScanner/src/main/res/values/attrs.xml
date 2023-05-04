@@ -5,6 +5,7 @@
         <attr name="csvVibratorDuration" format="integer" />
         <attr name="csvFrameColor" format="color" />
         <attr name="csvFrameThickness" format="dimension" />
+        <attr name="csvFrameThicknessMargin" format="dimension" />
         <attr name="csvFrameCornersSize" format="dimension" />
         <attr name="csvFrameCornersRadius" format="dimension" />
         <attr name="csvFrameAspectRatioWidth" format="float" />
@@ -14,6 +15,11 @@
         <attr name="csvLazerColor" format="color" />
         <attr name="csvLazerVisible" format="boolean" />
         <attr name="csvLazerAnimDuration" format="integer" />
+
+        <attr name="csvFrameMode" format="enum">
+            <enum name="oval" value="0" />
+            <enum name="rectangle" value="1" />
+        </attr>
         <attr name="csvLazerAnim" format="enum">
             <enum name="linear" value="0" />
             <enum name="fade" value="1" />

@@ -18,6 +18,8 @@ import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import com.semid.qrcodescanner.databinding.LayoutQrCodeScannerBinding
+import com.semid.qrcodescanner.enums.FrameMode
+import com.semid.qrcodescanner.enums.LazerAnimType
 import kotlin.math.roundToInt
 
 
@@ -27,7 +29,7 @@ class CodeScannerView(context: Context, private val attrs: AttributeSet?) :
     private val binding by lazy {
         LayoutQrCodeScannerBinding.inflate(LayoutInflater.from(context), this)
     }
-    private var lazerAnim = 0
+    private var lazerAnim = LazerAnimType.FADE
     private var lazerAnimDuration = 0
 
     @JvmField
@@ -127,6 +129,12 @@ class CodeScannerView(context: Context, private val attrs: AttributeSet?) :
                 (DEFAULT_FRAME_THICKNESS_DP * density).roundToInt()
             )
         )
+        setFrameThicknessMargin(
+            a.getDimensionPixelOffset(
+                R.styleable.CodeScannerView_csvFrameThicknessMargin,
+                (DEFAULT_FRAME_THICKNESS_MARGIN_DP * density).roundToInt()
+            )
+        )
         setFrameCornersSize(
             a.getDimensionPixelOffset(
                 R.styleable.CodeScannerView_csvFrameCornersSize,
@@ -162,9 +170,30 @@ class CodeScannerView(context: Context, private val attrs: AttributeSet?) :
                 (DEFAULT_LAZER_HEIGHT * density).roundToInt()
             )
         )
-        setDeniedType(BarcodeDeniedType.find(a.getInt(R.styleable.CodeScannerView_csvDeniedType, BarcodeDeniedType.SNACK_BAR.id)))
+        setDeniedType(
+            BarcodeDeniedType.find(
+                a.getInt(
+                    R.styleable.CodeScannerView_csvDeniedType,
+                    BarcodeDeniedType.SNACK_BAR.id
+                )
+            )
+        )
+        setFrameMode(
+            FrameMode.findById(
+                a.getInt(
+                    R.styleable.CodeScannerView_csvFrameMode,
+                    FrameMode.RECTANGLE.id
+                )
+            )
+        )
 
-        lazerAnim = a.getInt(R.styleable.CodeScannerView_csvLazerAnim, 0)
+        lazerAnim =
+            LazerAnimType.findById(
+                a.getInt(
+                    R.styleable.CodeScannerView_csvLazerAnim,
+                    LazerAnimType.FADE.id
+                )
+            )
         lazerAnimDuration =
             a.getInt(R.styleable.CodeScannerView_csvLazerAnimDuration, DEFAULT_LAZER_DURATION)
 
@@ -179,8 +208,16 @@ class CodeScannerView(context: Context, private val attrs: AttributeSet?) :
         binding.viewFinderView.frameColor = color
     }
 
+    fun setFrameMode(mode: FrameMode) {
+        binding.viewFinderView.frameMode = mode
+    }
+
     fun setFrameThickness(@Px thickness: Int) {
         binding.viewFinderView.frameThickness = thickness
+    }
+
+    fun setFrameThicknessMargin(@Px margin: Int) {
+        binding.viewFinderView.frameThicknessMargin = margin.toFloat()
     }
 
     fun setLazerHeight(@Px height: Int) {
@@ -239,7 +276,7 @@ class CodeScannerView(context: Context, private val attrs: AttributeSet?) :
     private fun startLazerAnim(toTop: Boolean) {
         binding.lazerView.animate().setListener(null)
 
-        if (lazerAnim == 0) {
+        if (lazerAnim == LazerAnimType.LINEAR) {
             val animY: Float = binding.lazerViewGroup.height.toFloat() / 2
             val translationY = if (toTop) -animY else animY
 
@@ -270,6 +307,7 @@ class CodeScannerView(context: Context, private val attrs: AttributeSet?) :
         private const val DEFAULT_MASK_COLOR = 0x77000000
         private const val DEFAULT_FRAME_COLOR = Color.WHITE
         private const val DEFAULT_FRAME_THICKNESS_DP = 4f
+        private const val DEFAULT_FRAME_THICKNESS_MARGIN_DP = 0f
         private const val DEFAULT_FRAME_ASPECT_RATIO_WIDTH = 1f
         private const val DEFAULT_FRAME_ASPECT_RATIO_HEIGHT = 1f
         private const val DEFAULT_FRAME_CORNER_SIZE_DP = 40f
