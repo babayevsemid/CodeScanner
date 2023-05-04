@@ -107,10 +107,12 @@ scannerView.vibrate() //manual vibrate
  
  ### Attributes
   ``` 
+  csvFrameMode // rectangle or oval. Default: rectangle
   csvMaskColor //Default #77000000
   csvVibratorDuration // Default: 100ms
   csvFrameColor // Default: white
   csvFrameThickness // Default: 4dp
+  csvFrameThicknessMargin // Default: 0dp
   csvFrameCornersSize // Default: 40dp
   csvFrameCornersRadius // Default: 10dp
   csvFrameAspectRatioWidth // Default: 1
