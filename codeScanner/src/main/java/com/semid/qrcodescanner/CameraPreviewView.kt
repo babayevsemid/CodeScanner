@@ -14,6 +14,7 @@ import android.provider.Settings
 import android.util.AttributeSet
 import android.util.Log
 import android.view.LayoutInflater
+import android.view.Surface.ROTATION_0
 import android.widget.FrameLayout
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -62,6 +63,7 @@ class CameraPreviewView(context: Context, attrs: AttributeSet?) : FrameLayout(co
     private var reCheckPermission = false
     private var successfullyRead = false
     private var vibratorDuration = 0
+    private var snackBar: Snackbar? = null
 
     private val screenAspectRatio: Int
         get() {
@@ -122,6 +124,10 @@ class CameraPreviewView(context: Context, attrs: AttributeSet?) : FrameLayout(co
     }
 
     fun requestCamera(context: Context?) {
+        if (context == null || cameraProvider == null) {
+            return
+        }
+
         reCheckPermission = false
 
         val permission = object : PermissionListener {
@@ -161,14 +167,15 @@ class CameraPreviewView(context: Context, attrs: AttributeSet?) : FrameLayout(co
 
         when (deniedType) {
             BarcodeDeniedType.SNACK_BAR -> {
-                Snackbar.make(this, titleText, deniedModel.snackBarDuration)
+                snackBar = Snackbar.make(this, titleText, deniedModel.snackBarDuration)
                     .setAction(settingsText) {
                         showAppSettings()
                     }.addCallback(object : Snackbar.Callback() {
                         override fun onDismissed(transientBottomBar: Snackbar?, event: Int) {
                             permissionMessageCanceled(event != 1)
                         }
-                    }).show()
+                    })
+                snackBar?.show()
             }
             BarcodeDeniedType.DIALOG -> {
                 AlertDialog.Builder(context)
@@ -205,6 +212,10 @@ class CameraPreviewView(context: Context, attrs: AttributeSet?) : FrameLayout(co
         this.deniedType = deniedType
     }
 
+    fun dismissSnackBar() {
+        snackBar?.dismiss()
+    }
+
     fun setDeniedModel(deniedModel: BarcodeDeniedModel) {
         this.deniedModel = deniedModel
     }
@@ -231,7 +242,7 @@ class CameraPreviewView(context: Context, attrs: AttributeSet?) : FrameLayout(co
 
         previewUseCase = Preview.Builder()
             .setTargetAspectRatio(screenAspectRatio)
-            .setTargetRotation(binding.previewView.display.rotation)
+            .setTargetRotation(ROTATION_0)
             .build()
         previewUseCase?.setSurfaceProvider(binding.previewView.surfaceProvider)
 
@@ -263,17 +274,17 @@ class CameraPreviewView(context: Context, attrs: AttributeSet?) : FrameLayout(co
 
         analysisUseCase = ImageAnalysis.Builder()
             .setTargetAspectRatio(screenAspectRatio)
-            .setTargetRotation(binding.previewView.display.rotation)
+            .setTargetRotation(ROTATION_0)
             .build()
 
         // Initialize our background executor
         val cameraExecutor = Executors.newSingleThreadExecutor()
 
         analysisUseCase?.setAnalyzer(
-            cameraExecutor, { imageProxy ->
-                processImageProxy(barcodeScanner, imageProxy)
-            }
-        )
+            cameraExecutor
+        ) { imageProxy ->
+            processImageProxy(barcodeScanner, imageProxy)
+        }
 
         try {
             cameraProvider?.bindToLifecycle(
@@ -409,6 +420,11 @@ class CameraPreviewView(context: Context, attrs: AttributeSet?) : FrameLayout(co
 //                showDeniedMessage()
 //            }
         }
+    }
+
+    @OnLifecycleEvent(Lifecycle.Event.ON_STOP)
+    private fun onStop() {
+        dismissSnackBar()
     }
 
     private fun cameraPermissionIsGranted() =
