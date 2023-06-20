@@ -9,8 +9,6 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import com.samid.qrcodescanner.databinding.ActivityMainBinding
-import com.semid.filechooser.FileChooserActivity
-import com.semid.filechooser.FileTypeEnum
 import com.semid.qrcodescanner.BarcodeFormat
 
 class MainActivity : AppCompatActivity() {
