@@ -1,6 +1,7 @@
 package com.samid.qrcodescanner
 
 import android.content.Intent
+import android.graphics.BitmapFactory
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -9,7 +10,12 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import com.samid.qrcodescanner.databinding.ActivityMainBinding
+import com.semid.filechooser.FileChooserActivity
+import com.semid.filechooser.FileTypeEnum
 import com.semid.qrcodescanner.BarcodeFormat
+import com.semid.qrcodescanner.Utils
+import com.semid.qrcodescanner.Utils.applyNegativeEffect
+import java.io.File
 
 class MainActivity : AppCompatActivity() {
     private val binding by lazy {
@@ -21,10 +27,9 @@ class MainActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         binding.scanner.init(this)
-        binding.scanner.setBarcodeFormats(arrayListOf(BarcodeFormat.FORMAT_QR_CODE))
 
         binding.scanner.permissionMessageCanceled = {
-            Log.e("permissionMessag","$it")
+            Log.e("permissionMessag", "$it")
         }
 
         binding.scanner.torchState = {
@@ -36,19 +41,23 @@ class MainActivity : AppCompatActivity() {
         }
 
         binding.scanner.onResult = {
-            Toast.makeText(applicationContext, it, Toast.LENGTH_SHORT).show()
+            if (it.isNotEmpty()) {
+                Toast.makeText(applicationContext, it, Toast.LENGTH_SHORT).show()
 
-            Handler(Looper.myLooper()!!).postDelayed({
-                binding.scanner.readNext()
-            }, 1000)
+                Handler(Looper.getMainLooper()).postDelayed({
+                    binding.scanner.readNext()
+                }, 1000)
+            }
         }
 
         binding.scanner.onResultFromFile = {
-            Toast.makeText(applicationContext, it, Toast.LENGTH_SHORT).show()
+            if (it.isNotEmpty()) {
+                Toast.makeText(applicationContext, it, Toast.LENGTH_SHORT).show()
 
-            Handler(Looper.myLooper()!!).postDelayed({
-                binding.scanner.readNext()
-            }, 1000)
+                Handler(Looper.getMainLooper()).postDelayed({
+                    binding.scanner.readNext()
+                }, 1000)
+            }
         }
 
         binding.flashBtn.setOnClickListener {

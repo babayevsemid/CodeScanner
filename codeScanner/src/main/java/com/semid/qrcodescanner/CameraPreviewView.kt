@@ -7,21 +7,21 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.net.Uri
-import android.os.Build
-import android.os.VibrationEffect
-import android.os.Vibrator
+import android.os.*
 import android.provider.Settings
 import android.util.AttributeSet
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.Surface.ROTATION_0
 import android.widget.FrameLayout
+import android.widget.ImageView
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.core.*
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.content.ContextCompat
 import androidx.core.content.ContextCompat.startActivity
+import androidx.core.view.updateLayoutParams
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.*
 import com.google.android.material.snackbar.Snackbar
@@ -36,6 +36,8 @@ import com.karumi.dexter.listener.PermissionDeniedResponse
 import com.karumi.dexter.listener.PermissionGrantedResponse
 import com.karumi.dexter.listener.PermissionRequest
 import com.karumi.dexter.listener.single.PermissionListener
+import com.semid.qrcodescanner.Utils.applyNegativeEffect
+import com.semid.qrcodescanner.Utils.toBitmap
 import com.semid.qrcodescanner.databinding.LayoutCameraPreviewViewBinding
 import java.io.File
 import java.util.concurrent.Executors
@@ -43,8 +45,8 @@ import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
 
-
-class CameraPreviewView(context: Context, attrs: AttributeSet?) : FrameLayout(context, attrs),
+internal class CameraPreviewView(context: Context, attrs: AttributeSet?) :
+    FrameLayout(context, attrs),
     LifecycleObserver {
     private val binding by lazy {
         LayoutCameraPreviewViewBinding.inflate(LayoutInflater.from(context), this)
@@ -56,6 +58,7 @@ class CameraPreviewView(context: Context, attrs: AttributeSet?) : FrameLayout(co
     private var cameraSelector: CameraSelector? = null
     private var previewUseCase: Preview? = null
     private var analysisUseCase: ImageAnalysis? = null
+    private var negativeUseCase: ImageAnalysis? = null
 
     private var deniedModel = BarcodeDeniedModel()
     private var deniedType = BarcodeDeniedType.SNACK_BAR
@@ -94,7 +97,7 @@ class CameraPreviewView(context: Context, attrs: AttributeSet?) : FrameLayout(co
 
             val viewModel = ViewModelProvider(
                 fragment, ViewModelProvider.AndroidViewModelFactory.getInstance(application)
-            ).get(CameraVM::class.java)
+            )[CameraVM::class.java]
 
             viewModel.cameraProviderLiveData.observe(fragment) {
                 cameraProvider = it
@@ -113,7 +116,7 @@ class CameraPreviewView(context: Context, attrs: AttributeSet?) : FrameLayout(co
 
             val viewModel = ViewModelProvider(
                 activity, ViewModelProvider.AndroidViewModelFactory.getInstance(application)
-            ).get(CameraVM::class.java)
+            )[CameraVM::class.java]
 
             viewModel.cameraProviderLiveData.observe(activity) {
                 cameraProvider = it
@@ -225,6 +228,7 @@ class CameraPreviewView(context: Context, attrs: AttributeSet?) : FrameLayout(co
 
         bindPreviewUseCase()
         bindAnalyseUseCase()
+        bindNegativeUseCase()
     }
 
     fun readNext() {
@@ -270,7 +274,7 @@ class CameraPreviewView(context: Context, attrs: AttributeSet?) : FrameLayout(co
             return
 
         if (analysisUseCase != null)
-            cameraProvider!!.unbind(analysisUseCase)
+            cameraProvider?.unbind(analysisUseCase)
 
         analysisUseCase = ImageAnalysis.Builder()
             .setTargetAspectRatio(screenAspectRatio)
@@ -299,33 +303,106 @@ class CameraPreviewView(context: Context, attrs: AttributeSet?) : FrameLayout(co
         }
     }
 
+    private fun bindNegativeUseCase() {
+        val options = BarcodeScannerOptions.Builder()
+            .setBarcodeFormats(barcodeFormats[0], *barcodeFormats)
+            .build()
+
+        val barcodeScanner: BarcodeScanner = BarcodeScanning.getClient(options)
+
+        if (cameraProvider == null)
+            return
+
+        if (negativeUseCase != null)
+            cameraProvider!!.unbind(negativeUseCase)
+
+        negativeUseCase = ImageAnalysis.Builder()
+            .setTargetAspectRatio(screenAspectRatio)
+            .setTargetRotation(binding.previewView.display.rotation)
+            .build()
+
+
+        // Initialize our background executor
+        val cameraExecutor = Executors.newSingleThreadExecutor()
+
+        negativeUseCase?.setAnalyzer(
+            cameraExecutor
+        ) { imageProxy ->
+            processImageNegativeProxy(barcodeScanner, imageProxy)
+        }
+
+        try {
+            cameraProvider?.bindToLifecycle(
+                lifecycleOwner,
+                cameraSelector!!,
+                negativeUseCase
+            )
+        } catch (illegalStateException: IllegalStateException) {
+            Log.e(TAG, illegalStateException.message.toString())
+        } catch (illegalArgumentException: IllegalArgumentException) {
+            Log.e(TAG, illegalArgumentException.message.toString())
+        }
+    }
+
     @SuppressLint("UnsafeOptInUsageError")
     private fun processImageProxy(
         barcodeScanner: BarcodeScanner,
         imageProxy: ImageProxy
     ) {
-        val inputImage =
-            InputImage.fromMediaImage(imageProxy.image!!, imageProxy.imageInfo.rotationDegrees)
+        imageProxy.image?.let { image ->
+            val inputImage =
+                InputImage.fromMediaImage(image, imageProxy.imageInfo.rotationDegrees)
 
-        barcodeScanner.process(inputImage)
-            .addOnSuccessListener { barcodes ->
-                barcodes.forEach {
-                    val result = it.rawValue ?: ""
+            barcodeScanner.process(inputImage)
+                .addOnSuccessListener { barcodes ->
+                    barcodes.forEach {
+                        val result = it.rawValue ?: ""
 
-                    if (result.isNotEmpty() && successfullyRead.not()) {
-                        successfullyRead = true
+                        if (result.isNotEmpty() && successfullyRead.not()) {
+                            successfullyRead = true
 
-                        vibrate()
-                        onResult.invoke(result)
+                            vibrate()
+                            onResult.invoke(result)
+                        }
                     }
                 }
-            }
-            .addOnFailureListener {
-                onResult.invoke("")
-            }.addOnCompleteListener {
-                imageProxy.close()
-            }
+                .addOnFailureListener {
+                    onResult.invoke("")
+                }.addOnCompleteListener {
+                    imageProxy.close()
+                }
+        }
     }
+
+    @SuppressLint("UnsafeOptInUsageError")
+    private fun processImageNegativeProxy(
+        barcodeScanner: BarcodeScanner,
+        imageProxy: ImageProxy
+    ) {
+        imageProxy.toBitmap()?.let { bitmap ->
+            val inputImage = InputImage.fromBitmap(bitmap.applyNegativeEffect(), 0)
+
+            barcodeScanner.process(inputImage)
+                .addOnSuccessListener { barcodes ->
+                    barcodes.forEach {
+                        val result = it.rawValue ?: ""
+
+                        if (result.isNotEmpty() && successfullyRead.not()) {
+                            successfullyRead = true
+
+                            vibrate()
+                            onResult.invoke(result)
+                        }
+                    }
+                }
+                .addOnFailureListener {
+                    onResult.invoke("")
+                }.addOnCompleteListener {
+                    imageProxy.close()
+                }
+        }
+    }
+
 
     fun scanFromUri(uri: Uri?) {
         uri?.let {
@@ -341,7 +418,7 @@ class CameraPreviewView(context: Context, attrs: AttributeSet?) : FrameLayout(co
     }
 
     fun scanFromBitmap(bitmap: Bitmap?) {
-        bitmap?.let {
+        bitmap?.applyNegativeEffect()?.let {
             scanFromInputImage(InputImage.fromBitmap(bitmap, 0))
         }
     }

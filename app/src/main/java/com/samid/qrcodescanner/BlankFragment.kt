@@ -40,11 +40,13 @@ class BlankFragment : Fragment() {
         }
 
         binding.scanner.onResult = {
-            Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
+            if (it.isNotBlank()) {
+                Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
 
-            Handler(Looper.myLooper()!!).postDelayed({
-                binding.scanner.readNext()
-            }, 1000)
+                Handler(Looper.myLooper()!!).postDelayed({
+                    binding.scanner.readNext()
+                }, 1000)
+            }
         }
 
         binding.flashBtn.setOnClickListener {

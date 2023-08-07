@@ -34,7 +34,7 @@ import androidx.annotation.Px
 import com.semid.qrcodescanner.enums.FrameMode
 import kotlin.math.roundToInt
 
-class ViewFinderView(context: Context?, attrs: AttributeSet?) : View(context, attrs) {
+internal class ViewFinderView(context: Context?, attrs: AttributeSet?) : View(context, attrs) {
     private val mMaskPaint: Paint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val mFramePaint: Paint
     private val mPath: Path
@@ -60,93 +60,121 @@ class ViewFinderView(context: Context?, attrs: AttributeSet?) : View(context, at
         val frameCornersRadius = mFrameCornersRadius.toFloat()
         val path = mPath
 
-        if (frameCornersRadius > 0) {
-            if (mFrameMode == FrameMode.OVAL) {
-                val frameRadius = (context.resources.displayMetrics.widthPixels * mFrameSize) / 2f
+        if (mFrameMode == FrameMode.OVAL) {
+            val frameRadius = (context.resources.displayMetrics.widthPixels * mFrameSize) / 2f
 
-                path.reset()
-                path.fillType = Path.FillType.INVERSE_EVEN_ODD
-                val centerX = getWidth() / 2f
-                val centerY = getHeight() / 2f
-
-                path.addCircle(centerX, centerY, frameRadius, Path.Direction.CW)
-                canvas.drawPath(path, mMaskPaint)
-
-                path.reset()
-                path.fillType = Path.FillType.EVEN_ODD
-                path.addCircle(
-                    centerX,
-                    centerY,
-                    frameRadius + frameThicknessMargin,
-                    Path.Direction.CW
-                )
-
-                canvas.drawPath(path, mFramePaint)
-            } else {
-                val normalizedRadius = Math.min(frameCornersRadius, Math.max(frameCornersSize - 1, 0f))
-                path.reset()
-                path.moveTo(left, top + normalizedRadius)
-                path.quadTo(left, top, left + normalizedRadius, top)
-                path.lineTo(right - normalizedRadius, top)
-                path.quadTo(right, top, right, top + normalizedRadius)
-                path.lineTo(right, bottom - normalizedRadius)
-                path.quadTo(right, bottom, right - normalizedRadius, bottom)
-                path.lineTo(left + normalizedRadius, bottom)
-                path.quadTo(left, bottom, left, bottom - normalizedRadius)
-                path.lineTo(left, top + normalizedRadius)
-                path.moveTo(0f, 0f)
-                path.lineTo(width.toFloat(), 0f)
-                path.lineTo(width.toFloat(), height.toFloat())
-                path.lineTo(0f, height.toFloat())
-                path.lineTo(0f, 0f)
-                canvas.drawPath(path, mMaskPaint)
-
-
-                path.reset()
-                path.moveTo(left- frameThicknessMargin, top + frameCornersSize- frameThicknessMargin)
-                path.lineTo(left- frameThicknessMargin, top + normalizedRadius- frameThicknessMargin)
-                path.quadTo(left- frameThicknessMargin, top- frameThicknessMargin, left + normalizedRadius- frameThicknessMargin, top- frameThicknessMargin)
-                path.lineTo(left + frameCornersSize- frameThicknessMargin, top- frameThicknessMargin)
-                path.moveTo(right - frameCornersSize+ frameThicknessMargin, top- frameThicknessMargin)
-                path.lineTo(right - normalizedRadius+ frameThicknessMargin, top- frameThicknessMargin)
-                path.quadTo(right+ frameThicknessMargin, top- frameThicknessMargin, right+ frameThicknessMargin, top + normalizedRadius- frameThicknessMargin)
-                path.lineTo(right+ frameThicknessMargin, top + frameCornersSize- frameThicknessMargin)
-                path.moveTo(right+ frameThicknessMargin, bottom - frameCornersSize+ frameThicknessMargin)
-                path.lineTo(right+ frameThicknessMargin, bottom - normalizedRadius+ frameThicknessMargin)
-                path.quadTo(right+ frameThicknessMargin, bottom+ frameThicknessMargin, right - normalizedRadius+ frameThicknessMargin, bottom+ frameThicknessMargin)
-                path.lineTo(right - frameCornersSize+ frameThicknessMargin, bottom+ frameThicknessMargin)
-                path.moveTo(left + frameCornersSize- frameThicknessMargin, bottom+ frameThicknessMargin)
-                path.lineTo(left + normalizedRadius- frameThicknessMargin, bottom+ frameThicknessMargin)
-                path.quadTo(left- frameThicknessMargin, bottom+ frameThicknessMargin, left- frameThicknessMargin, bottom - normalizedRadius+ frameThicknessMargin)
-                path.lineTo(left- frameThicknessMargin, bottom+ frameThicknessMargin - frameCornersSize)
-                canvas.drawPath(path, mFramePaint)
-            }
-        } else {
             path.reset()
-            path.moveTo(left, top)
-            path.lineTo(right, top)
-            path.lineTo(right, bottom)
-            path.lineTo(left, bottom)
-            path.lineTo(left, top)
+            path.fillType = Path.FillType.INVERSE_EVEN_ODD
+            val centerX = getWidth() / 2f
+            val centerY = getHeight() / 2f
+
+            path.addCircle(centerX, centerY, frameRadius, Path.Direction.CW)
+            canvas.drawPath(path, mMaskPaint)
+
+            path.reset()
+            path.fillType = Path.FillType.EVEN_ODD
+            path.addCircle(
+                centerX,
+                centerY,
+                frameRadius + frameThicknessMargin,
+                Path.Direction.CW
+            )
+
+            canvas.drawPath(path, mFramePaint)
+        } else {
+            val normalizedRadius =
+                Math.min(frameCornersRadius, Math.max(frameCornersSize - 1, 0f))
+            path.reset()
+            path.moveTo(left, top + normalizedRadius)
+            path.quadTo(left, top, left + normalizedRadius, top)
+            path.lineTo(right - normalizedRadius, top)
+            path.quadTo(right, top, right, top + normalizedRadius)
+            path.lineTo(right, bottom - normalizedRadius)
+            path.quadTo(right, bottom, right - normalizedRadius, bottom)
+            path.lineTo(left + normalizedRadius, bottom)
+            path.quadTo(left, bottom, left, bottom - normalizedRadius)
+            path.lineTo(left, top + normalizedRadius)
             path.moveTo(0f, 0f)
             path.lineTo(width.toFloat(), 0f)
             path.lineTo(width.toFloat(), height.toFloat())
             path.lineTo(0f, height.toFloat())
             path.lineTo(0f, 0f)
             canvas.drawPath(path, mMaskPaint)
+
+
             path.reset()
-            path.moveTo(left, top + frameCornersSize)
-            path.lineTo(left, top)
-            path.lineTo(left + frameCornersSize, top)
-            path.moveTo(right - frameCornersSize, top)
-            path.lineTo(right, top)
-            path.lineTo(right, top + frameCornersSize)
-            path.moveTo(right, bottom - frameCornersSize)
-            path.lineTo(right, bottom)
-            path.lineTo(right - frameCornersSize, bottom)
-            path.moveTo(left + frameCornersSize, bottom)
-            path.lineTo(left, bottom)
-            path.lineTo(left, bottom - frameCornersSize)
+            path.moveTo(
+                left - frameThicknessMargin,
+                top + frameCornersSize - frameThicknessMargin
+            )
+            path.lineTo(
+                left - frameThicknessMargin,
+                top + normalizedRadius - frameThicknessMargin
+            )
+            path.quadTo(
+                left - frameThicknessMargin,
+                top - frameThicknessMargin,
+                left + normalizedRadius - frameThicknessMargin,
+                top - frameThicknessMargin
+            )
+            path.lineTo(
+                left + frameCornersSize - frameThicknessMargin,
+                top - frameThicknessMargin
+            )
+            path.moveTo(
+                right - frameCornersSize + frameThicknessMargin,
+                top - frameThicknessMargin
+            )
+            path.lineTo(
+                right - normalizedRadius + frameThicknessMargin,
+                top - frameThicknessMargin
+            )
+            path.quadTo(
+                right + frameThicknessMargin,
+                top - frameThicknessMargin,
+                right + frameThicknessMargin,
+                top + normalizedRadius - frameThicknessMargin
+            )
+            path.lineTo(
+                right + frameThicknessMargin,
+                top + frameCornersSize - frameThicknessMargin
+            )
+            path.moveTo(
+                right + frameThicknessMargin,
+                bottom - frameCornersSize + frameThicknessMargin
+            )
+            path.lineTo(
+                right + frameThicknessMargin,
+                bottom - normalizedRadius + frameThicknessMargin
+            )
+            path.quadTo(
+                right + frameThicknessMargin,
+                bottom + frameThicknessMargin,
+                right - normalizedRadius + frameThicknessMargin,
+                bottom + frameThicknessMargin
+            )
+            path.lineTo(
+                right - frameCornersSize + frameThicknessMargin,
+                bottom + frameThicknessMargin
+            )
+            path.moveTo(
+                left + frameCornersSize - frameThicknessMargin,
+                bottom + frameThicknessMargin
+            )
+            path.lineTo(
+                left + normalizedRadius - frameThicknessMargin,
+                bottom + frameThicknessMargin
+            )
+            path.quadTo(
+                left - frameThicknessMargin,
+                bottom + frameThicknessMargin,
+                left - frameThicknessMargin,
+                bottom - normalizedRadius + frameThicknessMargin
+            )
+            path.lineTo(
+                left - frameThicknessMargin,
+                bottom + frameThicknessMargin - frameCornersSize
+            )
             canvas.drawPath(path, mFramePaint)
         }
     }

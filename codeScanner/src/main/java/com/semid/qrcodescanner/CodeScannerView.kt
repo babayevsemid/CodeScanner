@@ -17,6 +17,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
+import com.semid.qrcodescanner.Utils.applyNegativeEffect
 import com.semid.qrcodescanner.databinding.LayoutQrCodeScannerBinding
 import com.semid.qrcodescanner.enums.FrameMode
 import com.semid.qrcodescanner.enums.LazerAnimType

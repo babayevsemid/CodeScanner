@@ -7,8 +7,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 
-
-class CameraVM(application: Application) : AndroidViewModel(application) {
+internal class CameraVM(application: Application) : AndroidViewModel(application) {
     private val _cameraProviderLiveData = MutableLiveData<ProcessCameraProvider>()
     val cameraProviderLiveData: LiveData<ProcessCameraProvider> get() = _cameraProviderLiveData
 
