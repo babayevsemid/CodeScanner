@@ -274,6 +274,10 @@ class CodeScannerView(context: Context, private val attrs: AttributeSet?) :
         binding.previewView.setVibratorDuration(duration)
     }
 
+    fun setAccuracyDuration(duration: Int) {
+        binding.previewView.setAccuracyDuration(duration)
+    }
+
     fun setDeniedType(deniedType: BarcodeDeniedType) {
         binding.previewView.setDeniedType(deniedType)
     }

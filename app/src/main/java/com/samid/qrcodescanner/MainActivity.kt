@@ -21,9 +21,9 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(binding.root)
 
+        binding.scanner.setAccuracyDuration(1000)
         binding.scanner.init(this)
-        binding.scanner.enableNegativeScan(true)
-        binding.scanner.setCodeValidLength((13..30).toList())
+        binding.scanner.setCodeValidLength((10..30).toList())
 
         binding.scanner.permissionMessageCanceled = {
             Log.e("permissionMessag", "$it")

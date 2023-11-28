@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
+import android.graphics.Matrix
 import android.net.Uri
 import android.os.*
 import android.provider.Settings
@@ -70,6 +71,7 @@ internal class CameraPreviewView(context: Context, attrs: AttributeSet?) :
     private var snackBar: Snackbar? = null
     private var codeValidLength = listOf<Int>()
     private var enableNegativeScan = false
+    private var accuracyDuration = 0
 
     private val screenAspectRatio: Int
         get() {
@@ -323,7 +325,7 @@ internal class CameraPreviewView(context: Context, attrs: AttributeSet?) :
             return
 
         if (negativeUseCase != null)
-            cameraProvider!!.unbind(negativeUseCase)
+            cameraProvider?.unbind(negativeUseCase)
 
         negativeUseCase = ImageAnalysis.Builder()
             .setTargetAspectRatio(screenAspectRatio)
@@ -351,6 +353,8 @@ internal class CameraPreviewView(context: Context, attrs: AttributeSet?) :
         }
     }
 
+    private var timer: CountDownTimer? = null
+
     @SuppressLint("UnsafeOptInUsageError")
     private fun processImageProxy(
         barcodeScanner: BarcodeScanner,
@@ -358,18 +362,21 @@ internal class CameraPreviewView(context: Context, attrs: AttributeSet?) :
     ) {
         imageProxy.image?.let { image ->
             val inputImage =
-                InputImage.fromMediaImage(image, imageProxy.imageInfo.rotationDegrees)
+                InputImage.fromMediaImage(image, imageProxy.imageInfo.rotationDegrees, Matrix())
 
             barcodeScanner.process(inputImage)
                 .addOnSuccessListener { barcodes ->
-                    barcodes.forEach {
-                        val result = it.rawValue ?: ""
+                    barcodes.firstOrNull { !it.rawValue.isNullOrEmpty() }?.let { barcode ->
+                        val result = barcode.rawValue.orEmpty()
 
-                        if (result.isNotEmpty() && successfullyRead.not() &&
+                        if (successfullyRead.not() &&
                             (codeValidLength.isEmpty() || codeValidLength.contains(result.length))
                         ) {
-                            if (results.isEmpty()) {
-                                object : CountDownTimer(500, 500) {
+                            val startTimer = results.isEmpty()
+                            results.add(result)
+
+                            if (startTimer) {
+                                timer = object : CountDownTimer(accuracyDuration.toLong(), 1000) {
                                     override fun onTick(p0: Long) {}
 
                                     override fun onFinish() {
@@ -377,14 +384,17 @@ internal class CameraPreviewView(context: Context, attrs: AttributeSet?) :
 
                                         vibrate()
 
-                                        val result = results.maxByOrNull { it.length }.orEmpty()
-                                        results.clear()
-
-                                        onResult.invoke(result)
+                                        onResult.invoke(
+                                            results.groupingBy { it }
+                                                .eachCount()
+                                                .maxByOrNull { it.value }
+                                                ?.key.orEmpty().also {
+                                                    results.clear()
+                                                }
+                                        )
                                     }
                                 }.start()
                             }
-                            results.add(result)
                         }
                     }
                 }
@@ -406,14 +416,17 @@ internal class CameraPreviewView(context: Context, attrs: AttributeSet?) :
 
             barcodeScanner.process(inputImage)
                 .addOnSuccessListener { barcodes ->
-                    barcodes.forEach {
-                        val result = it.rawValue ?: ""
+                    barcodes.firstOrNull { !it.rawValue.isNullOrEmpty() }?.let { barcode ->
+                        val result = barcode.rawValue.orEmpty()
 
-                        if (result.isNotEmpty() && successfullyRead.not() &&
+                        if (successfullyRead.not() &&
                             (codeValidLength.isEmpty() || codeValidLength.contains(result.length))
                         ) {
-                            if (results.isEmpty()) {
-                                object : CountDownTimer(500, 500) {
+                            val startTimer = results.isEmpty()
+                            results.add(result)
+
+                            if (startTimer) {
+                                object : CountDownTimer(accuracyDuration.toLong(), 1000) {
                                     override fun onTick(p0: Long) {}
 
                                     override fun onFinish() {
@@ -421,14 +434,17 @@ internal class CameraPreviewView(context: Context, attrs: AttributeSet?) :
 
                                         vibrate()
 
-                                        val result = results.maxByOrNull { it.length }.orEmpty()
-                                        results.clear()
-
-                                        onResult.invoke(result)
+                                        onResult.invoke(
+                                            results.groupingBy { it }
+                                                .eachCount()
+                                                .maxByOrNull { it.value }
+                                                ?.key.orEmpty().also {
+                                                    results.clear()
+                                                }
+                                        )
                                     }
                                 }.start()
                             }
-                            results.add(result)
                         }
                     }
                 }
@@ -518,6 +534,10 @@ internal class CameraPreviewView(context: Context, attrs: AttributeSet?) :
 
     fun setVibratorDuration(duration: Int) {
         vibratorDuration = duration
+    }
+
+    fun setAccuracyDuration(duration: Int) {
+        accuracyDuration = duration
     }
 
     fun enableNegativeScan(enable: Boolean) {
