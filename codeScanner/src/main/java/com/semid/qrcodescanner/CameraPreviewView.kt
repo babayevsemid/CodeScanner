@@ -53,6 +53,7 @@ internal class CameraPreviewView(context: Context, attrs: AttributeSet?) :
     }
 
     private lateinit var lifecycleOwner: LifecycleOwner
+    private val results = mutableListOf<String>()
 
     private var cameraProvider: ProcessCameraProvider? = null
     private var cameraSelector: CameraSelector? = null
@@ -67,6 +68,8 @@ internal class CameraPreviewView(context: Context, attrs: AttributeSet?) :
     private var successfullyRead = false
     private var vibratorDuration = 0
     private var snackBar: Snackbar? = null
+    private var codeValidLength = listOf<Int>()
+    private var enableNegativeScan = false
 
     private val screenAspectRatio: Int
         get() {
@@ -180,6 +183,7 @@ internal class CameraPreviewView(context: Context, attrs: AttributeSet?) :
                     })
                 snackBar?.show()
             }
+
             BarcodeDeniedType.DIALOG -> {
                 AlertDialog.Builder(context)
                     .setTitle(deniedModel.title ?: context.getString(R.string.camera_access_title))
@@ -194,6 +198,7 @@ internal class CameraPreviewView(context: Context, attrs: AttributeSet?) :
                         permissionMessageCanceled(true)
                     }.create().show()
             }
+
             else -> {
             }
         }
@@ -213,6 +218,10 @@ internal class CameraPreviewView(context: Context, attrs: AttributeSet?) :
 
     fun setDeniedType(deniedType: BarcodeDeniedType) {
         this.deniedType = deniedType
+    }
+
+    fun setCodeValidLength(list: List<Int>) {
+        this.codeValidLength = list
     }
 
     fun dismissSnackBar() {
@@ -322,13 +331,11 @@ internal class CameraPreviewView(context: Context, attrs: AttributeSet?) :
             .build()
 
 
-        // Initialize our background executor
-        val cameraExecutor = Executors.newSingleThreadExecutor()
-
         negativeUseCase?.setAnalyzer(
-            cameraExecutor
+            Executors.newSingleThreadExecutor()
         ) { imageProxy ->
-            processImageNegativeProxy(barcodeScanner, imageProxy)
+            if (enableNegativeScan)
+                processImageNegativeProxy(barcodeScanner, imageProxy)
         }
 
         try {
@@ -358,11 +365,26 @@ internal class CameraPreviewView(context: Context, attrs: AttributeSet?) :
                     barcodes.forEach {
                         val result = it.rawValue ?: ""
 
-                        if (result.isNotEmpty() && successfullyRead.not()) {
-                            successfullyRead = true
+                        if (result.isNotEmpty() && successfullyRead.not() &&
+                            (codeValidLength.isEmpty() || codeValidLength.contains(result.length))
+                        ) {
+                            if (results.isEmpty()) {
+                                object : CountDownTimer(500, 500) {
+                                    override fun onTick(p0: Long) {}
 
-                            vibrate()
-                            onResult.invoke(result)
+                                    override fun onFinish() {
+                                        successfullyRead = true
+
+                                        vibrate()
+
+                                        val result = results.maxByOrNull { it.length }.orEmpty()
+                                        results.clear()
+
+                                        onResult.invoke(result)
+                                    }
+                                }.start()
+                            }
+                            results.add(result)
                         }
                     }
                 }
@@ -379,7 +401,7 @@ internal class CameraPreviewView(context: Context, attrs: AttributeSet?) :
         barcodeScanner: BarcodeScanner,
         imageProxy: ImageProxy
     ) {
-        imageProxy.toBitmap()?.let { bitmap ->
+        imageProxy.toBitmap().let { bitmap ->
             val inputImage = InputImage.fromBitmap(bitmap.applyNegativeEffect(), 0)
 
             barcodeScanner.process(inputImage)
@@ -387,11 +409,26 @@ internal class CameraPreviewView(context: Context, attrs: AttributeSet?) :
                     barcodes.forEach {
                         val result = it.rawValue ?: ""
 
-                        if (result.isNotEmpty() && successfullyRead.not()) {
-                            successfullyRead = true
+                        if (result.isNotEmpty() && successfullyRead.not() &&
+                            (codeValidLength.isEmpty() || codeValidLength.contains(result.length))
+                        ) {
+                            if (results.isEmpty()) {
+                                object : CountDownTimer(500, 500) {
+                                    override fun onTick(p0: Long) {}
 
-                            vibrate()
-                            onResult.invoke(result)
+                                    override fun onFinish() {
+                                        successfullyRead = true
+
+                                        vibrate()
+
+                                        val result = results.maxByOrNull { it.length }.orEmpty()
+                                        results.clear()
+
+                                        onResult.invoke(result)
+                                    }
+                                }.start()
+                            }
+                            results.add(result)
                         }
                     }
                 }
@@ -481,6 +518,10 @@ internal class CameraPreviewView(context: Context, attrs: AttributeSet?) :
 
     fun setVibratorDuration(duration: Int) {
         vibratorDuration = duration
+    }
+
+    fun enableNegativeScan(enable: Boolean) {
+        enableNegativeScan = enable
     }
 
     @OnLifecycleEvent(Lifecycle.Event.ON_RESUME)

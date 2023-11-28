@@ -10,12 +10,7 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import com.samid.qrcodescanner.databinding.ActivityMainBinding
-import com.semid.filechooser.FileChooserActivity
-import com.semid.filechooser.FileTypeEnum
 import com.semid.qrcodescanner.BarcodeFormat
-import com.semid.qrcodescanner.Utils
-import com.semid.qrcodescanner.Utils.applyNegativeEffect
-import java.io.File
 
 class MainActivity : AppCompatActivity() {
     private val binding by lazy {
@@ -27,6 +22,8 @@ class MainActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         binding.scanner.init(this)
+        binding.scanner.enableNegativeScan(true)
+        binding.scanner.setCodeValidLength((13..30).toList())
 
         binding.scanner.permissionMessageCanceled = {
             Log.e("permissionMessag", "$it")
@@ -39,6 +36,7 @@ class MainActivity : AppCompatActivity() {
                     if (it) R.drawable.ic_flash_on else R.drawable.ic_flash_off
                 )
         }
+
 
         binding.scanner.onResult = {
             if (it.isNotEmpty()) {
@@ -61,7 +59,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         binding.flashBtn.setOnClickListener {
-            startActivity(Intent(this, TestFragmentActivity::class.java))
+//            startActivity(Intent(this, TestFragmentActivity::class.java))
 
             binding.scanner.changeTorchState()
         }

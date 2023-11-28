@@ -79,6 +79,14 @@ class CodeScannerView(context: Context, private val attrs: AttributeSet?) :
         binding.previewView.setBarcodeFormats(formats)
     }
 
+    fun setCodeValidLength(list: List<Int>) {
+        binding.previewView.setCodeValidLength(list)
+    }
+
+    fun enableNegativeScan(enable: Boolean) {
+        binding.previewView.enableNegativeScan(enable = enable)
+    }
+
     fun scanFromUri(uri: Uri?) {
         binding.previewView.scanFromUri(uri)
     }
