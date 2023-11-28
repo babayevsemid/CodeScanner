@@ -12,7 +12,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'com.github.babayevsemid:CodeScanner:1.2.0'
+    implementation 'com.github.babayevsemid:CodeScanner:1.4.1'
       
 }
 ```
@@ -103,6 +103,8 @@ scannerView.changeTorchState() // if torch is off change to on
 scannerView.isEnabledTorch() //check torch status
 
 scannerView.vibrate() //manual vibrate
+
+scannerView.setAccuracyDuration(1000) //For barcode scan
  ```
  
  ### Attributes
