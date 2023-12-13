@@ -21,6 +21,7 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(binding.root)
 
+
         binding.scanner.setAccuracyDuration(1000)
         binding.scanner.init(this)
         binding.scanner.setCodeValidLength((10..30).toList())

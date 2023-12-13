@@ -275,29 +275,24 @@ internal class CameraPreviewView(context: Context, attrs: AttributeSet?) :
     }
 
     private fun bindAnalyseUseCase() {
-        val options = BarcodeScannerOptions.Builder()
-            .setBarcodeFormats(barcodeFormats[0], *barcodeFormats)
-            .build()
-
-        val barcodeScanner: BarcodeScanner = BarcodeScanning.getClient(options)
-
         if (cameraProvider == null)
             return
 
         if (analysisUseCase != null)
             cameraProvider?.unbind(analysisUseCase)
 
+        val options = BarcodeScannerOptions.Builder()
+            .setBarcodeFormats(barcodeFormats[0], *barcodeFormats)
+            .build()
+
+        val barcodeScanner = BarcodeScanning.getClient(options)
+
         analysisUseCase = ImageAnalysis.Builder()
             .setTargetAspectRatio(screenAspectRatio)
             .setTargetRotation(ROTATION_0)
             .build()
 
-        // Initialize our background executor
-        val cameraExecutor = Executors.newSingleThreadExecutor()
-
-        analysisUseCase?.setAnalyzer(
-            cameraExecutor
-        ) { imageProxy ->
+        analysisUseCase?.setAnalyzer(Executors.newSingleThreadExecutor()) { imageProxy ->
             processImageProxy(barcodeScanner, imageProxy)
         }
 
@@ -315,23 +310,19 @@ internal class CameraPreviewView(context: Context, attrs: AttributeSet?) :
     }
 
     private fun bindNegativeUseCase() {
+        if (cameraProvider == null)
+            return
+
         val options = BarcodeScannerOptions.Builder()
             .setBarcodeFormats(barcodeFormats[0], *barcodeFormats)
             .build()
 
-        val barcodeScanner: BarcodeScanner = BarcodeScanning.getClient(options)
-
-        if (cameraProvider == null)
-            return
-
-        if (negativeUseCase != null)
-            cameraProvider?.unbind(negativeUseCase)
+        val barcodeScanner = BarcodeScanning.getClient(options)
 
         negativeUseCase = ImageAnalysis.Builder()
             .setTargetAspectRatio(screenAspectRatio)
             .setTargetRotation(binding.previewView.display.rotation)
             .build()
-
 
         negativeUseCase?.setAnalyzer(
             Executors.newSingleThreadExecutor()
@@ -341,9 +332,12 @@ internal class CameraPreviewView(context: Context, attrs: AttributeSet?) :
         }
 
         try {
+            cameraProvider?.unbindAll()
             cameraProvider?.bindToLifecycle(
                 lifecycleOwner,
                 cameraSelector!!,
+                previewUseCase,
+                analysisUseCase,
                 negativeUseCase
             )
         } catch (illegalStateException: IllegalStateException) {
