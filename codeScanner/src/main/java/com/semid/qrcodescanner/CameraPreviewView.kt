@@ -239,7 +239,6 @@ internal class CameraPreviewView(context: Context, attrs: AttributeSet?) :
 
         bindPreviewUseCase()
         bindAnalyseUseCase()
-        bindNegativeUseCase()
     }
 
     fun readNext() {
@@ -293,7 +292,11 @@ internal class CameraPreviewView(context: Context, attrs: AttributeSet?) :
             .build()
 
         analysisUseCase?.setAnalyzer(Executors.newSingleThreadExecutor()) { imageProxy ->
-            processImageProxy(barcodeScanner, imageProxy)
+            if (enableNegativeScan) {
+                processImageNegativeProxy(barcodeScanner, imageProxy)
+            }else{
+                processImageProxy(barcodeScanner, imageProxy)
+            }
         }
 
         try {
@@ -301,44 +304,6 @@ internal class CameraPreviewView(context: Context, attrs: AttributeSet?) :
                 lifecycleOwner,
                 cameraSelector!!,
                 analysisUseCase
-            )
-        } catch (illegalStateException: IllegalStateException) {
-            Log.e(TAG, illegalStateException.message.toString())
-        } catch (illegalArgumentException: IllegalArgumentException) {
-            Log.e(TAG, illegalArgumentException.message.toString())
-        }
-    }
-
-    private fun bindNegativeUseCase() {
-        if (cameraProvider == null)
-            return
-
-        val options = BarcodeScannerOptions.Builder()
-            .setBarcodeFormats(barcodeFormats[0], *barcodeFormats)
-            .build()
-
-        val barcodeScanner = BarcodeScanning.getClient(options)
-
-        negativeUseCase = ImageAnalysis.Builder()
-            .setTargetAspectRatio(screenAspectRatio)
-            .setTargetRotation(binding.previewView.display.rotation)
-            .build()
-
-        negativeUseCase?.setAnalyzer(
-            Executors.newSingleThreadExecutor()
-        ) { imageProxy ->
-            if (enableNegativeScan)
-                processImageNegativeProxy(barcodeScanner, imageProxy)
-        }
-
-        try {
-            cameraProvider?.unbindAll()
-            cameraProvider?.bindToLifecycle(
-                lifecycleOwner,
-                cameraSelector!!,
-                previewUseCase,
-                analysisUseCase,
-                negativeUseCase
             )
         } catch (illegalStateException: IllegalStateException) {
             Log.e(TAG, illegalStateException.message.toString())
@@ -573,7 +538,7 @@ internal class CameraPreviewView(context: Context, attrs: AttributeSet?) :
     }
 
     companion object {
-        private val TAG = CodeScannerView::class.java.simpleName
+        private val TAG = "CodeScannerView"
 
         private const val RATIO_4_3_VALUE = 4.0 / 3.0
         private const val RATIO_16_9_VALUE = 16.0 / 9.0
