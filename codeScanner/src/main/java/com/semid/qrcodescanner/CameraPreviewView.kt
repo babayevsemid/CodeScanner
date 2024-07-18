@@ -214,8 +214,11 @@ internal class CameraPreviewView(context: Context, attrs: AttributeSet?) :
         startActivity(context, intent, null)
     }
 
-    fun setBarcodeFormats(formats: List<BarcodeFormat>) {
+    fun setBarcodeFormats(formats: List<BarcodeFormat>, forceUpdate:Boolean) {
         barcodeFormats = formats.map { it.id }.toIntArray()
+
+        if (forceUpdate)
+            bindAnalyseUseCase()
     }
 
     fun setDeniedType(deniedType: BarcodeDeniedType) {

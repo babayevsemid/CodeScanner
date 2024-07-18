@@ -75,8 +75,8 @@ class CodeScannerView(context: Context, private val attrs: AttributeSet?) :
         binding.previewView.readNext()
     }
 
-    fun setBarcodeFormats(formats: List<BarcodeFormat>) {
-        binding.previewView.setBarcodeFormats(formats)
+    fun setBarcodeFormats(formats: List<BarcodeFormat>, forceUpdate: Boolean = false) {
+        binding.previewView.setBarcodeFormats(formats, forceUpdate)
     }
 
     fun setCodeValidLength(list: List<Int>) {
@@ -245,7 +245,7 @@ class CodeScannerView(context: Context, private val attrs: AttributeSet?) :
 
     fun setFrameAspectRatio(
         @FloatRange(from = 0.0, fromInclusive = false) ratioWidth: Float,
-        @FloatRange(from = 0.0, fromInclusive = false) ratioHeight: Float
+        @FloatRange(from = 0.0, fromInclusive = false) ratioHeight: Float,
     ) {
         binding.viewFinderView.setFrameAspectRatio(ratioWidth, ratioHeight)
 
